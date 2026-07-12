@@ -15,3 +15,8 @@ wheels/
 
 # MkDocs build output
 site/
+
+# Coverage.py artifacts
+.coverage
+.coverage.*
+htmlcov/
