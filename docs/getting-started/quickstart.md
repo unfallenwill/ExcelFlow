@@ -25,7 +25,7 @@ examples/tutorial/source.xlsx           源数据文件
 ## 2. 校验计划
 
 ```bash
-uv run excelflow validate examples/tutorial/01_single_sheet.xlsx
+uv run excelflow validate --plan examples/tutorial/01_single_sheet.xlsx
 ```
 
 成功时显示：
@@ -39,7 +39,7 @@ uv run excelflow validate examples/tutorial/01_single_sheet.xlsx
 ## 3. 预览任务
 
 ```bash
-uv run excelflow preview examples/tutorial/01_single_sheet.xlsx lesson_01
+uv run excelflow preview --plan examples/tutorial/01_single_sheet.xlsx --task lesson_01
 ```
 
 `lesson_01` 是“抽取计划”中的任务ID。预览让你在执行前确认要读取哪个 Sheet、输出多少列。
@@ -56,8 +56,12 @@ Pandas 执行计划: lesson_01
 ## 4. 执行抽取
 
 ```bash
-uv run excelflow run examples/tutorial/01_single_sheet.xlsx lesson_01 \
-  examples/tutorial/source.xlsx csv examples/tutorial/output/01_orders.csv
+uv run excelflow run \
+  --plan examples/tutorial/01_single_sheet.xlsx \
+  --task lesson_01 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/01_orders.csv
 ```
 
 成功时显示：
@@ -75,26 +79,26 @@ order_id,status,amount
 1003,paid,80.0
 ```
 
-## 5. 看懂 run 命令的五个参数
+## 5. 看懂 run 命令的五个选项
 
 ```text
-excelflow run <计划文件> <任务ID> <源数据文件> <输出格式> <输出路径>
+excelflow run --plan <计划文件> --task <任务ID> --source <源数据文件> --format <输出格式> --output <输出路径>
 ```
 
-| 参数 | 本例 | 为什么需要 |
-|---|---|---|
-| 计划文件 | `01_single_sheet.xlsx` | 告诉工具怎样加工数据 |
-| 任务ID | `lesson_01` | 一个计划里可能有多个任务，需要选一个 |
-| 源数据文件 | `source.xlsx` | 真正要处理的数据 |
-| 输出格式 | `csv` | 可以选择 `csv`、`jsonl` 或 `xlsx` |
-| 输出路径 | `01_orders.csv` | 告诉工具把结果放在哪里 |
+| 选项 | 短选项 | 本例 | 为什么需要 |
+|---|---|---|---|
+| `--plan` | `-p` | `01_single_sheet.xlsx` | 告诉工具怎样加工数据 |
+| `--task` | `-t` | `lesson_01` | 一个计划里可能有多个任务，需要选一个 |
+| `--source` | `-s` | `source.xlsx` | 真正要处理的数据 |
+| `--format` | `-f` | `csv` | 可以选择 `csv`、`jsonl` 或 `xlsx` |
+| `--output` | `-o` | `01_orders.csv` | 告诉工具把结果放在哪里 |
 
-输出格式由命令参数决定，不是由文件后缀猜测。为了避免误解，建议让后缀与格式一致。
+输出格式由 `--format` 选项决定，不是由文件后缀猜测。为了避免误解，建议让后缀与格式一致。
 
 ## 6. 创建自己的模板
 
 ```bash
-excelflow template extraction_plan.xlsx
+excelflow template --output extraction_plan.xlsx
 ```
 
 打开新文件，将示例内容替换成自己的任务。第一次修改时，建议只做单 Sheet 抽取，验证成功后再增加过滤和关联。

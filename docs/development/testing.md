@@ -10,11 +10,12 @@ uv run python -m unittest discover -s tests -v
 
 现有测试分为：
 
+- `test_cli.py`：控制台与模块入口、长短选项、输出内容、错误流和旧语法拒绝；
 - `test_expression.py`：安全表达式、支持函数和恶意语法拦截；
 - `test_components.py`：过滤运算符、输出 Writer、Service 错误路径；
 - `test_main.py`：真实 Excel 计划和源数据的端到端抽取。
 
-截至 0.1.0 后的当前源码，完整测试套件包含 12 个测试。测试数量会随功能演进而变化，应以命令的实际输出为准。
+测试数量会随功能演进而变化，应以完整测试命令的实际输出为准，不在文档中维护固定数量。
 
 新增功能至少应测试：
 

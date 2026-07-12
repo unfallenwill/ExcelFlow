@@ -14,7 +14,7 @@
 执行时才把二者放在一起：
 
 ```bash
-excelflow run <计划文件> <任务ID> <源数据文件> <输出格式> <输出路径>
+excelflow run --plan <计划文件> --task <任务ID> --source <源数据文件> --format <输出格式> --output <输出路径>
 ```
 
 计划不保存源文件路径，是为了让同一套规则可以反复处理不同批次、但结构相同的数据。
@@ -50,7 +50,7 @@ excelflow run <计划文件> <任务ID> <源数据文件> <输出格式> <输出
 任务ID会出现在命令中：
 
 ```bash
-excelflow preview extraction_plan.xlsx lesson_04
+excelflow preview --plan extraction_plan.xlsx --task lesson_04
 ```
 
 ## 第三步：声明数据对象和主表
@@ -149,17 +149,21 @@ o.order_id = i.order_id AND o.tenant = i.tenant
 以仓库中的完整示例为例：
 
 ```bash
-uv run excelflow validate examples/tutorial/04_derived_columns.xlsx
-uv run excelflow preview examples/tutorial/04_derived_columns.xlsx lesson_04
-uv run excelflow run examples/tutorial/04_derived_columns.xlsx lesson_04 \
-  examples/tutorial/source.xlsx csv examples/tutorial/output/04_order_lines.csv
+uv run excelflow validate --plan examples/tutorial/04_derived_columns.xlsx
+uv run excelflow preview --plan examples/tutorial/04_derived_columns.xlsx --task lesson_04
+uv run excelflow run \
+  --plan examples/tutorial/04_derived_columns.xlsx \
+  --task lesson_04 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/04_order_lines.csv
 ```
 
 - 校验发现计划内部矛盾，例如没有主表、别名重复或关联顺序无效。它不读取源数据，因此 Sheet 或真实列名是否存在要到运行时确认。
 - 预览帮助确认读取对象、关联、过滤和输出字段数量。
 - 运行才读取源数据，并把结果写到指定位置。
 
-输出格式支持 `csv`、`jsonl` 和 `xlsx`。格式由命令参数决定，建议输出路径使用对应后缀。
+输出格式支持 `csv`、`jsonl` 和 `xlsx`。格式由 `--format` 选项决定，建议输出路径使用对应后缀。
 
 ## 第八步：解释结果行数
 

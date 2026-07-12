@@ -22,8 +22,8 @@
 命令通过任务ID选择任务：
 
 ```bash
-excelflow preview extraction_plan.xlsx order_report
-excelflow run extraction_plan.xlsx order_report source.xlsx xlsx output/orders.xlsx
+excelflow preview --plan extraction_plan.xlsx --task order_report
+excelflow run --plan extraction_plan.xlsx --task order_report --source source.xlsx --format xlsx --output output/orders.xlsx
 ```
 
 “启用”为“否”的任务可以保留配置，但执行 `run` 会失败。`preview` 只读取并展示指定任务的声明：它不检查任务是否启用，也不会读取源数据或替代 `validate`。删除任务时，也应删除其他工作表中使用该任务ID的行，否则校验会报告任务ID不存在。

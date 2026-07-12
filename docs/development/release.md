@@ -27,7 +27,7 @@ uv build
 
 ```bash
 excelflow --help
-excelflow template /tmp/extraction_plan.xlsx
+excelflow template --output /tmp/extraction_plan.xlsx
 ```
 
 ## 3. 发布 PyPI

@@ -53,10 +53,14 @@ ExcelFlow 会理解为：
 ## 运行
 
 ```bash
-uv run excelflow validate examples/tutorial/02_filters.xlsx
-uv run excelflow preview examples/tutorial/02_filters.xlsx lesson_02
-uv run excelflow run examples/tutorial/02_filters.xlsx lesson_02 \
-  examples/tutorial/source.xlsx jsonl examples/tutorial/output/02_paid_orders.jsonl
+uv run excelflow validate --plan examples/tutorial/02_filters.xlsx
+uv run excelflow preview --plan examples/tutorial/02_filters.xlsx --task lesson_02
+uv run excelflow run \
+  --plan examples/tutorial/02_filters.xlsx \
+  --task lesson_02 \
+  --source examples/tutorial/source.xlsx \
+  --format jsonl \
+  --output examples/tutorial/output/02_paid_orders.jsonl
 ```
 
 预期只有订单 1001：

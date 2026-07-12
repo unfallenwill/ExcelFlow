@@ -21,9 +21,9 @@ v.actual_day - clip(v.actual_day, v.plan_day - v.window_days, v.plan_day + v.win
 完成配置后依次运行：
 
 ```bash
-excelflow validate extraction_plan.xlsx
-excelflow preview extraction_plan.xlsx window_check
-excelflow run extraction_plan.xlsx window_check source.xlsx csv output/window_check.csv
+excelflow validate --plan extraction_plan.xlsx
+excelflow preview --plan extraction_plan.xlsx --task window_check
+excelflow run --plan extraction_plan.xlsx --task window_check --source source.xlsx --format csv --output output/window_check.csv
 ```
 
 这里的 `validate` 只检查计划结构，不会读取 `source.xlsx`。列名是否存在、列值能否参与数值计算，要到执行 `run` 时才能确认。实际日、计划日和窗口天数应使用数值列；空值会沿计算传播，最终得到空值。

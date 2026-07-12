@@ -10,6 +10,10 @@
 - MkDocs Material 文档站和 GitHub Pages 自动部署。
 - MIT 许可证及贡献、安全、行为准则文档。
 
+### Changed
+
+- **破坏性变更：** CLI 全面改用 Unix/POSIX 风格的命名选项（如 `--plan`/`-p`、`--task`/`-t`、`--source`/`-s`、`--format`/`-f` 和 `--output`/`-o`），不再支持旧的位置参数语法。
+
 ## [0.1.0]
 
 初始公开版本。

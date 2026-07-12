@@ -21,8 +21,8 @@ uv run python -m excelflow --help
 生成并校验模板：
 
 ```bash
-uv run excelflow template /tmp/extraction_plan.xlsx
-uv run excelflow validate /tmp/extraction_plan.xlsx
+uv run excelflow template --output /tmp/extraction_plan.xlsx
+uv run excelflow validate --plan /tmp/extraction_plan.xlsx
 ```
 
 ## 项目布局

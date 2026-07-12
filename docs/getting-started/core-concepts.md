@@ -36,7 +36,8 @@
 一个计划文件可以放多个任务，例如“订单清单”和“客户清单”。`任务ID` 是任务的唯一短名称，也是执行命令中用来选择任务的名称：
 
 ```bash
-excelflow run extraction_plan.xlsx order_report source.xlsx csv output.csv
+excelflow run --plan extraction_plan.xlsx --task order_report \
+  --source source.xlsx --format csv --output output.csv
 ```
 
 这里的 `order_report` 就是任务ID。各工作表使用同一个任务ID，ExcelFlow 才知道哪些配置属于同一项工作。
@@ -104,9 +105,10 @@ status = paid AND amount >= 100
 养成以下顺序可以更早发现错误：
 
 ```bash
-excelflow validate extraction_plan.xlsx
-excelflow preview extraction_plan.xlsx order_report
-excelflow run extraction_plan.xlsx order_report source.xlsx csv output.csv
+excelflow validate --plan extraction_plan.xlsx
+excelflow preview --plan extraction_plan.xlsx --task order_report
+excelflow run --plan extraction_plan.xlsx --task order_report \
+  --source source.xlsx --format csv --output output.csv
 ```
 
 - `validate` 检查计划本身是否完整、前后一致。

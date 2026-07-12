@@ -9,11 +9,14 @@ python -m excelflow
 ## 命令概览
 
 ```text
-excelflow template [path]
-excelflow validate path
-excelflow preview path task_id
-excelflow run path task_id source_excel {csv,jsonl,xlsx} output_path
+excelflow [-V]
+excelflow template [-o PATH]
+excelflow validate -p PATH
+excelflow preview -p PATH -t TASK_ID
+excelflow run -p PATH -t TASK_ID -s SOURCE.xlsx -f {csv,jsonl,xlsx} -o PATH
 ```
+
+上面的命令概览使用短选项；每个短选项都可以替换为下文参数表中的对应长选项，例如 `-p` 等价于 `--plan`。
 
 不提供子命令或使用未知参数时，参数解析器显示用法并以非零状态退出。
 
@@ -22,12 +25,12 @@ excelflow run path task_id source_excel {csv,jsonl,xlsx} output_path
 创建计划模板。
 
 ```bash
-excelflow template [path]
+excelflow template --output extraction_plan.xlsx
 ```
 
 | 参数 | 必填 | 默认值 | 说明 |
 |---|---:|---|---|
-| `path` | 否 | `extraction_plan.xlsx` | 模板输出路径；父目录会自动创建。 |
+| `-o, --output` | 否 | `extraction_plan.xlsx` | 模板输出路径；父目录会自动创建。 |
 
 成功输出：
 
@@ -42,12 +45,12 @@ excelflow template [path]
 读取并校验整个计划文件。
 
 ```bash
-excelflow validate extraction_plan.xlsx
+excelflow validate --plan extraction_plan.xlsx
 ```
 
 | 参数 | 必填 | 说明 |
 |---|---:|---|
-| `path` | 是 | 计划 Excel 路径。 |
+| `-p, --plan` | 是 | 计划 Excel 路径。 |
 
 成功输出 `校验通过`，退出码为 `0`。失败时每个问题输出为：
 
@@ -62,13 +65,13 @@ excelflow validate extraction_plan.xlsx
 显示某个任务的 Pandas 执行计划摘要。
 
 ```bash
-excelflow preview extraction_plan.xlsx order_report
+excelflow preview --plan extraction_plan.xlsx --task order_report
 ```
 
 | 参数 | 必填 | 说明 |
 |---|---:|---|
-| `path` | 是 | 计划 Excel 路径。 |
-| `task_id` | 是 | “抽取计划”中的任务ID。 |
+| `-p, --plan` | 是 | 计划 Excel 路径。 |
+| `-t, --task` | 是 | “抽取计划”中的任务ID。 |
 
 输出包括读取对象、按顺序排列的关联、过滤条件数量和输出字段数量，例如：
 
@@ -87,32 +90,43 @@ Pandas 执行计划: order_report
 执行抽取并写出结果。
 
 ```bash
-excelflow run path task_id source_excel output_format output_path
+excelflow run --plan PATH --task TASK_ID --source SOURCE.xlsx --format {csv,jsonl,xlsx} --output PATH
 ```
 
 | 参数 | 必填 | 说明 |
 |---|---:|---|
-| `path` | 是 | 计划 Excel 路径。 |
-| `task_id` | 是 | 要执行的任务ID。 |
-| `source_excel` | 是 | 包含源数据 Sheet 的 Excel 文件。 |
-| `output_format` | 是 | `csv`、`jsonl` 或 `xlsx`。 |
-| `output_path` | 是 | 输出文件路径；父目录会自动创建。 |
+| `-p, --plan` | 是 | 计划 Excel 路径。 |
+| `-t, --task` | 是 | 要执行的任务ID。 |
+| `-s, --source` | 是 | 包含源数据 Sheet 的 Excel 文件。 |
+| `-f, --format` | 是 | `csv`、`jsonl` 或 `xlsx`。 |
+| `-o, --output` | 是 | 输出文件路径；父目录会自动创建。 |
 
 示例：
 
 ```bash
-excelflow run extraction_plan.xlsx order_report source.xlsx csv output/report.csv
-excelflow run extraction_plan.xlsx order_report source.xlsx jsonl output/report.jsonl
-excelflow run extraction_plan.xlsx order_report source.xlsx xlsx output/report.xlsx
+excelflow run -p extraction_plan.xlsx -t order_report -s source.xlsx -f csv -o output/report.csv
+excelflow run -p extraction_plan.xlsx -t order_report -s source.xlsx -f jsonl -o output/report.jsonl
+excelflow run -p extraction_plan.xlsx -t order_report -s source.xlsx -f xlsx -o output/report.xlsx
 ```
 
-输出格式由 `output_format` 参数决定，不根据 `output_path` 后缀推断。CSV 使用 UTF-8 BOM 且不写索引；JSONL 每行一个对象、保留非 ASCII 字符并使用 ISO 日期；XLSX 的结果 Sheet 名为 `data`。
+输出格式由 `--format` 参数决定，不根据 `--output` 的后缀推断。CSV 使用 UTF-8 BOM 且不写索引；JSONL 每行一个对象、保留非 ASCII 字符并使用 ISO 日期；XLSX 的结果 Sheet 名为 `data`。
 
 执行前会校验整个计划，并确认所选任务的“启用”为“是”。成功输出：
 
 ```text
 抽取完成: 120 行 -> output/report.csv
 ```
+
+## 版本信息
+
+使用全局选项查看当前安装的 ExcelFlow 版本：
+
+```bash
+excelflow --version
+excelflow -V
+```
+
+显示版本后命令立即退出，不需要指定子命令。
 
 ## 退出码与错误输出
 
@@ -128,4 +142,4 @@ excelflow run extraction_plan.xlsx order_report source.xlsx xlsx output/report.x
 失败: <错误内容>
 ```
 
-计划内容校验失败属于 `validate` 的正常结果，逐条 `错误:` 信息写到标准输出；文件无法读取等异常也会由 `validate` 包装成一条校验错误并写到标准输出。`preview`、`run` 和 `template` 的异常则使用上述 `失败:` 格式写到标准错误。
+计划内容校验失败时，`validate` 将逐条 `错误:` 信息写到标准错误；文件无法读取等异常也会由 `validate` 包装成一条校验错误并写到标准错误。stdout 只用于成功结果和正常预览内容。`preview`、`run` 和 `template` 的异常使用上述 `失败:` 格式写到标准错误。

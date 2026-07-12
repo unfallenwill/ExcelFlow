@@ -3,7 +3,7 @@
 建议始终先运行：
 
 ```bash
-excelflow validate extraction_plan.xlsx
+excelflow validate --plan extraction_plan.xlsx
 ```
 
 `validate` 只检查计划文件的结构和声明关系，不读取源数据。因此它无法提前发现源 Sheet 缺失、源列缺失、表头不合法、类型转换失败或表达式引用的源列不存在；这些问题会在 `run` 读取源 Excel 后报告。
@@ -73,7 +73,7 @@ excelflow --help
 
 ## 输出文件后缀和内容不一致
 
-实际格式由命令中的 `csv`、`jsonl` 或 `xlsx` 参数决定，不由输出路径后缀推断。建议保持两者一致。
+实际格式由命令中的 `--format`（`-f`）选项决定，不由 `--output`（`-o`）路径的后缀推断。建议保持两者一致。
 
 ## 输出为空
 

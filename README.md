@@ -35,15 +35,16 @@ pipx install excelflow
 生成计划模板：
 
 ```bash
-excelflow template extraction_plan.xlsx
+excelflow template --output extraction_plan.xlsx
 ```
 
 填写模板后，依次校验、预览和执行。假设任务ID为 `order_report`，源数据为 `source.xlsx`：
 
 ```bash
-excelflow validate extraction_plan.xlsx
-excelflow preview extraction_plan.xlsx order_report
-excelflow run extraction_plan.xlsx order_report source.xlsx csv output/order_report.csv
+excelflow validate --plan extraction_plan.xlsx
+excelflow preview --plan extraction_plan.xlsx --task order_report
+excelflow run --plan extraction_plan.xlsx --task order_report \
+  --source source.xlsx --format csv --output output/order_report.csv
 ```
 
 完整操作过程参见[快速开始](docs/getting-started/quickstart.md)和[模板填写完整教程](docs/tutorials/template-tutorial.md)。

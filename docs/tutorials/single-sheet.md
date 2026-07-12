@@ -63,10 +63,14 @@
 ## 运行并检查
 
 ```bash
-uv run excelflow validate examples/tutorial/01_single_sheet.xlsx
-uv run excelflow preview examples/tutorial/01_single_sheet.xlsx lesson_01
-uv run excelflow run examples/tutorial/01_single_sheet.xlsx lesson_01 \
-  examples/tutorial/source.xlsx csv examples/tutorial/output/01_orders.csv
+uv run excelflow validate --plan examples/tutorial/01_single_sheet.xlsx
+uv run excelflow preview --plan examples/tutorial/01_single_sheet.xlsx --task lesson_01
+uv run excelflow run \
+  --plan examples/tutorial/01_single_sheet.xlsx \
+  --task lesson_01 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/01_orders.csv
 ```
 
 预期得到 3 行、3 列：

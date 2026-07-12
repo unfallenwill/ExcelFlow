@@ -23,10 +23,16 @@ uv run python examples/generate.py
 - “字段映射”：选择字段并修改输出列名。
 
 ```bash
-uv run excelflow validate examples/tutorial/01_single_sheet.xlsx
-uv run excelflow preview examples/tutorial/01_single_sheet.xlsx lesson_01
-uv run excelflow run examples/tutorial/01_single_sheet.xlsx lesson_01 \
-  examples/tutorial/source.xlsx csv examples/tutorial/output/01_orders.csv
+uv run excelflow validate --plan examples/tutorial/01_single_sheet.xlsx
+uv run excelflow preview \
+  --plan examples/tutorial/01_single_sheet.xlsx \
+  --task lesson_01
+uv run excelflow run \
+  --plan examples/tutorial/01_single_sheet.xlsx \
+  --task lesson_01 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/01_orders.csv
 ```
 
 ## 第 2 课：添加过滤条件
@@ -40,8 +46,12 @@ uv run excelflow run examples/tutorial/01_single_sheet.xlsx lesson_01 \
 - 两条记录属于同一条件组，因此使用 AND 连接。
 
 ```bash
-uv run excelflow run examples/tutorial/02_filters.xlsx lesson_02 \
-  examples/tutorial/source.xlsx jsonl examples/tutorial/output/02_paid_orders.jsonl
+uv run excelflow run \
+  --plan examples/tutorial/02_filters.xlsx \
+  --task lesson_02 \
+  --source examples/tutorial/source.xlsx \
+  --format jsonl \
+  --output examples/tutorial/output/02_paid_orders.jsonl
 ```
 
 如果条件放在不同的“条件组”，组之间会使用 OR 连接。
@@ -60,8 +70,12 @@ ON o.customer_id = c.customer_id
 字段映射可以使用 `c.customer_name` 输出客户名称。
 
 ```bash
-uv run excelflow run examples/tutorial/03_join.xlsx lesson_03 \
-  examples/tutorial/source.xlsx xlsx examples/tutorial/output/03_orders_with_customer.xlsx
+uv run excelflow run \
+  --plan examples/tutorial/03_join.xlsx \
+  --task lesson_03 \
+  --source examples/tutorial/source.xlsx \
+  --format xlsx \
+  --output examples/tutorial/output/03_orders_with_customer.xlsx
 ```
 
 ## 第 4 课：多 Sheet、复合关联键和衍生列
@@ -84,8 +98,12 @@ coalesce(i.quantity, 0) * coalesce(i.unit_price, 0)
 用于计算每一行的 `line_amount`。
 
 ```bash
-uv run excelflow run examples/tutorial/04_derived_columns.xlsx lesson_04 \
-  examples/tutorial/source.xlsx csv examples/tutorial/output/04_order_lines.csv
+uv run excelflow run \
+  --plan examples/tutorial/04_derived_columns.xlsx \
+  --task lesson_04 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/04_order_lines.csv
 ```
 
 预期结果：

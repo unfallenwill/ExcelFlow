@@ -77,10 +77,14 @@ round(coalesce(i.quantity, 0) * coalesce(i.unit_price, 0), 2)
 本例还保留“已支付且金额不少于 100”的订单：
 
 ```bash
-uv run excelflow validate examples/tutorial/04_derived_columns.xlsx
-uv run excelflow preview examples/tutorial/04_derived_columns.xlsx lesson_04
-uv run excelflow run examples/tutorial/04_derived_columns.xlsx lesson_04 \
-  examples/tutorial/source.xlsx csv examples/tutorial/output/04_order_lines.csv
+uv run excelflow validate --plan examples/tutorial/04_derived_columns.xlsx
+uv run excelflow preview --plan examples/tutorial/04_derived_columns.xlsx --task lesson_04
+uv run excelflow run \
+  --plan examples/tutorial/04_derived_columns.xlsx \
+  --task lesson_04 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/04_order_lines.csv
 ```
 
 预期结果：

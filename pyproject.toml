@@ -1,6 +1,6 @@
 [project]
 name = "excelflow"
-version = "0.1.0"
+version = "0.2.0"
 description = "Excel-declared data extraction powered by Pandas"
 readme = "README.md"
 license = "MIT"
