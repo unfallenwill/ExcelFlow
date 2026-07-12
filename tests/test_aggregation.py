@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 
 from excelflow.engine import PandasExtractionEngine
 from excelflow.repository import ExcelSpecRepository
@@ -204,6 +204,16 @@ class AggregationTest(unittest.TestCase):
                                        text=True, capture_output=True, check=False)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(pd.read_csv(output).to_dict("records"), [{"customer": "A", "line_count": 3, "order_count": 2, "total": 35.0}])
+
+
+    def test_repository_rejects_plan_missing_required_sheets(self):
+        # 计划文件缺少必需 Sheet（被改名或手改）时，必须列出缺失项，而不是抛无上下文的 KeyError
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad_plan.xlsx"
+            wb = Workbook(); ws = wb.active; assert ws is not None
+            ws.title = "抽取计划"; wb.save(path)
+            with self.assertRaisesRegex(ValueError, "缺少工作表"):
+                ExcelSpecRepository().load(path)
 
 
 if __name__ == "__main__": unittest.main()
