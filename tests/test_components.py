@@ -1,4 +1,3 @@
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,16 +37,6 @@ class EngineConditionTest(unittest.TestCase):
         self.assertEqual(self.condition("o.number", "!=", 2).tolist(), [True, False, True, True])
         self.assertEqual(self.condition("o.date", "<", "2026-01-03").tolist(), [True, True, False, False])
 
-    def test_environment_resolution(self):
-        os.environ["EXCELFLOW_TEST_VALUE"] = "2"
-        try:
-            self.assertEqual(self.condition("o.number", "=", "${EXCELFLOW_TEST_VALUE}").tolist(), [False, True, False, False])
-        finally:
-            os.environ.pop("EXCELFLOW_TEST_VALUE")
-        with self.assertRaisesRegex(ValueError, "未设置"):
-            self.condition("o.number", "=", "${EXCELFLOW_MISSING}")
-
-
 class OutputWriterTest(unittest.TestCase):
     def test_all_writers_and_unknown_format(self):
         frame = pd.DataFrame({"id": [1], "name": ["张三"]})
@@ -74,11 +63,11 @@ class ExtractionServiceTest(unittest.TestCase):
         validator.validate.return_value = ValidationResult(errors=["bad plan"])
         service = ExtractionService(repository=repository, validator=validator, engine=engine)
         with self.assertRaisesRegex(ValueError, "bad plan"):
-            service.run(Path("plan.xlsx"), "task", Path("source.xlsx"))
+            service.run(Path("plan.xlsx"), "task", Path("source.xlsx"), "csv", Path("out.data"))
         validator.validate.return_value = ValidationResult()
         repository.load.return_value = ExtractionSpec(plans=[{"任务ID": "task", "启用": "否"}])
         with self.assertRaisesRegex(ValueError, "未启用"):
-            service.run(Path("plan.xlsx"), "task", Path("source.xlsx"))
+            service.run(Path("plan.xlsx"), "task", Path("source.xlsx"), "csv", Path("out.data"))
 
 
 if __name__ == "__main__":

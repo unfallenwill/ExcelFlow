@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -11,9 +10,6 @@ import pandas as pd
 from .expression import SafeExpressionEvaluator
 from .schema import ExtractionSpec, SAFE_FIELD
 
-ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
-
-
 class ExtractionEngine(ABC):
     @abstractmethod
     def execute(self, spec: ExtractionSpec, task_id: str, source: Path) -> pd.DataFrame: ...
@@ -22,13 +18,6 @@ class ExtractionEngine(ABC):
 class PandasExtractionEngine(ExtractionEngine):
     def __init__(self, evaluator: SafeExpressionEvaluator | None = None):
         self.evaluator = evaluator or SafeExpressionEvaluator()
-
-    @staticmethod
-    def _resolve(value: Any) -> Any:
-        if isinstance(value, str) and (match := ENV_PATTERN.fullmatch(value.strip())):
-            if match.group(1) not in os.environ: raise ValueError(f"环境变量 {match.group(1)} 未设置")
-            return os.environ[match.group(1)]
-        return value
 
     def _load(self, spec: ExtractionSpec, task_id: str, source: Path) -> dict[str, pd.DataFrame]:
         frames = {}
@@ -55,7 +44,6 @@ class PandasExtractionEngine(ExtractionEngine):
         return result
 
     def _coerce(self, series: pd.Series, value: Any):
-        value = self._resolve(value)
         if pd.api.types.is_datetime64_any_dtype(series): return pd.to_datetime(value)
         if pd.api.types.is_numeric_dtype(series) and isinstance(value, str):
             try: return float(value) if "." in value else int(value)
@@ -99,10 +87,5 @@ class PandasExtractionEngine(ExtractionEngine):
         return output.reset_index(drop=True)
 
     def execute(self, spec: ExtractionSpec, task_id: str, source: Path) -> pd.DataFrame:
-        plan = spec.task(task_id)
         frame = self._join(spec, task_id, self._load(spec, task_id, source))
-        if str(plan["抽取模式"]) == "增量":
-            series = frame[str(plan["增量字段"])]
-            start, end = self._coerce(series, plan["开始值"]), self._coerce(series, plan["结束值"])
-            frame = frame.loc[series.ge(start) & series.lt(end)]
         return self._select(self._filter(frame, spec, task_id), spec, task_id)

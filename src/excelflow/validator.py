@@ -13,14 +13,7 @@ class SpecValidator:
 
         for plan in spec.plans:
             task = str(plan.get("任务ID") or "").strip()
-            mode = str(plan.get("抽取模式") or "").strip()
-            if mode not in {"全量", "增量"}: errors.append(f"任务 {task}: 抽取模式必须为全量或增量")
-            if mode == "增量":
-                if not QUALIFIED_FIELD.fullmatch(str(plan.get("增量字段") or "")): errors.append(f"任务 {task}: 增量字段必须为 别名.字段")
-                if plan.get("开始值") in (None, "") or plan.get("结束值") in (None, ""): errors.append(f"任务 {task}: 增量范围不能为空")
             if str(plan.get("启用") or "") not in {"是", "否"}: errors.append(f"任务 {task}: 启用必须为是或否")
-            if str(plan.get("输出格式") or "").lower() not in {"csv", "jsonl", "xlsx"}: errors.append(f"任务 {task}: 输出格式不支持")
-            if not str(plan.get("输出路径") or "").strip(): errors.append(f"任务 {task}: 输出路径不能为空")
 
         for row, obj in enumerate(spec.objects, 2):
             task, alias = str(obj.get("任务ID") or "").strip(), str(obj.get("对象别名") or "").strip()

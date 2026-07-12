@@ -28,16 +28,16 @@ class ExtractionService:
         for order in sorted({int(x["关联顺序"]) for x in joins}):
             rows = [x for x in joins if int(x["关联顺序"]) == order]
             lines.append(f'关联{order}: {rows[0]["关联类型"]} {rows[0]["右侧对象"]} ON ' + " AND ".join(f'{x["左侧字段"]}={x["右侧字段"]}' for x in rows))
-        lines.extend([f"抽取模式: {plan['抽取模式']}", f"过滤条件: {len(spec.for_task(spec.filters, task_id))} 条", f"输出字段: {len(spec.for_task(spec.fields, task_id))} 个"])
+        lines.extend([f"过滤条件: {len(spec.for_task(spec.filters, task_id))} 条", f"输出字段: {len(spec.for_task(spec.fields, task_id))} 个"])
         return "\n".join(lines)
 
-    def run(self, plan_path: Path, task_id: str, source_path: Path) -> tuple[int, Path]:
+    def run(self, plan_path: Path, task_id: str, source_path: Path, output_format: str, output: Path) -> tuple[int, Path]:
         spec = self.repository.load(plan_path)
         result = self.validator.validate(spec)
         if not result.ok: raise ValueError("Excel 校验失败:\n" + "\n".join(result.errors))
         plan = spec.task(task_id)
         if str(plan.get("启用")) != "是": raise ValueError(f"任务 {task_id} 未启用")
         frame = self.engine.execute(spec, task_id, source_path)
-        output = Path(str(plan["输出路径"])); output.parent.mkdir(parents=True, exist_ok=True)
-        self.writer_factory.create(str(plan["输出格式"])).write(frame, output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        self.writer_factory.create(output_format).write(frame, output)
         return len(frame), output

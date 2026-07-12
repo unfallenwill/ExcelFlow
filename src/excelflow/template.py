@@ -22,8 +22,8 @@ def _validation(ws, column, values, limit=1000):
 
 def create_template(path: Path) -> None:
     wb = Workbook(); plan = wb.active; plan.title = "抽取计划"; plan.append(PLAN_HEADERS)
-    plan.append(["demo_orders", "否", "增量", "o.updated_at", "${START_TIME}", "${END_TIME}", "csv", "./output/orders.csv", "数据组", "示例任务"])
-    _style(plan, [18, 9, 12, 20, 20, 20, 12, 30, 14, 28]); _validation(plan, "B", ["是", "否"]); _validation(plan, "C", ["全量", "增量"]); _validation(plan, "G", ["csv", "jsonl", "xlsx"])
+    plan.append(["demo_orders", "否", "示例任务"])
+    _style(plan, [18, 9, 40]); _validation(plan, "B", ["是", "否"])
     objects = wb.create_sheet("数据对象"); objects.append(OBJECT_HEADERS)
     objects.append(["demo_orders", "订单", "o", 1, "是", "主表"]); objects.append(["demo_orders", "订单明细", "i", 1, "否", "关联表"])
     _style(objects, [18, 24, 16, 12, 14, 28]); _validation(objects, "E", ["是", "否"])
@@ -42,10 +42,10 @@ def create_template(path: Path) -> None:
         ("执行引擎", "Pandas；计划会被解释为 read_excel、merge、布尔过滤和 Series 运算，不执行 SQL 或 eval"),
         ("数据对象", "每个任务必须且只能有一个主表；同一源 Excel 可配置多个 Sheet"),
         ("关联关系", "支持 INNER JOIN 和 LEFT JOIN；相同关联顺序的多行组成复合关联键"),
-        ("字段", "增量、映射、过滤和表达式字段使用 别名.字段"),
+        ("字段", "映射、过滤和表达式字段使用 别名.字段"),
         ("转换表达式", "支持 + - * / %、coalesce、abs、round，例如 coalesce(i.quantity, 0) * i.price"),
         ("过滤条件", "同组内 AND，不同组之间 OR；IN 值用英文逗号分隔"),
-        ("增量范围", "左闭右开 [开始值, 结束值)，支持 ${ENV_NAME}"),
+        ("输出", "执行 run 时分别指定输出格式（csv/jsonl/xlsx）和输出路径"),
     ]: guide.append(row)
     _style(guide, [20, 100])
     path.parent.mkdir(parents=True, exist_ok=True); wb.save(path)

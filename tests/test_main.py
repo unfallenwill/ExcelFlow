@@ -15,7 +15,7 @@ class ExtractionTest(unittest.TestCase):
         wb = load_workbook(plan_path)
         plan = wb["抽取计划"]
         plan.delete_rows(2, plan.max_row)
-        plan.append(["orders", "是", "增量", "o.updated_at", "2026-01-01", "2026-02-01", output_format, str(root / f"result.{output_format}"), "test", ""])
+        plan.append(["orders", "是", "测试任务"])
         objects = wb["数据对象"]
         objects.delete_rows(2, objects.max_row)
         objects.append(["orders", "订单", "o", 1, "是", ""])
@@ -48,7 +48,7 @@ class ExtractionTest(unittest.TestCase):
             customers.append([10, "张三"])
             wb.save(source)
             plan = self._plan(root, "jsonl")
-            count, output = run_task(plan, "orders", source)
+            count, output = run_task(plan, "orders", source, "jsonl", root / "result.jsonl")
             self.assertEqual(count, 1)
             self.assertEqual(json.loads(output.read_text()), {"order_id": 1, "customer_name": "张三", "amount": 20})
 
@@ -82,7 +82,7 @@ class ExtractionTest(unittest.TestCase):
             plan_wb = load_workbook(plan_path)
             plan = plan_wb["抽取计划"]
             plan.delete_rows(2, plan.max_row)
-            plan.append(["report", "是", "全量", "", "", "", "jsonl", str(root / "result.jsonl"), "test", ""])
+            plan.append(["report", "是", "四表关联测试"])
             objects = plan_wb["数据对象"]
             objects.delete_rows(2, objects.max_row)
             objects.append(["report", "订单", "o", 1, "是", ""])
@@ -108,7 +108,7 @@ class ExtractionTest(unittest.TestCase):
             plan_wb.save(plan_path)
 
             self.assertTrue(validate(plan_path).ok)
-            count, output = run_task(plan_path, "report", source)
+            count, output = run_task(plan_path, "report", source, "jsonl", root / "result.jsonl")
             rows = [json.loads(line) for line in output.read_text().splitlines()]
             self.assertEqual(count, 2)
             self.assertEqual(rows, [

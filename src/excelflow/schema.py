@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-PLAN_HEADERS = ["任务ID", "启用", "抽取模式", "增量字段", "开始值", "结束值", "输出格式", "输出路径", "负责人", "备注"]
+PLAN_HEADERS = ["任务ID", "启用", "备注"]
 OBJECT_HEADERS = ["任务ID", "Sheet名称", "对象别名", "表头行", "是否主表", "备注"]
 JOIN_HEADERS = ["任务ID", "关联顺序", "关联类型", "左侧字段", "右侧对象", "右侧字段", "备注"]
 FIELD_HEADERS = ["任务ID", "源字段", "目标字段", "目标类型", "转换表达式", "字段顺序", "备注"]
