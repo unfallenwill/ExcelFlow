@@ -1,52 +1,92 @@
 # ExcelFlow
 
-一个由 Excel 声明驱动、使用 Pandas 执行的数据抽取工具。Excel 管理抽取任务、Sheet 关联、过滤和字段映射。
+ExcelFlow 是一个由 Excel 计划驱动的数据抽取工具。业务用户在模板中声明需要读取的 Sheet、关联方式、过滤条件、输出字段和衍生列，ExcelFlow 使用 Pandas 执行这些规则并输出 CSV、JSONL 或 Excel。
 
-## 快速开始
+[![PyPI](https://img.shields.io/pypi/v/excelflow)](https://pypi.org/project/excelflow/)
+[![Python](https://img.shields.io/pypi/pyversions/excelflow)](https://pypi.org/project/excelflow/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## 适合解决的问题
+
+- 从一个 Excel Sheet 中选择、重命名和转换字段。
+- 使用结构化条件筛选数据，而不需要编写代码。
+- 在同一个工作簿中关联多个 Sheet。
+- 通过安全表达式计算金额、差值和超窗天数等衍生列。
+- 将同一份抽取计划保存、审核、复用和纳入版本管理。
+
+## 安装
+
+推荐使用 uv 安装为独立命令行工具：
 
 ```bash
-uv run excelflow template extraction_plan.xlsx
-uv run excelflow validate extraction_plan.xlsx
-uv run excelflow preview extraction_plan.xlsx demo_orders
-uv run excelflow run extraction_plan.xlsx demo_orders ./data/source.xlsx csv ./output/orders.csv
+uv tool install excelflow
 ```
 
-也可以通过模块入口运行：
+也可以使用 pipx：
 
 ```bash
-uv run python -m excelflow validate extraction_plan.xlsx
+pipx install excelflow
 ```
 
-生成的工作簿包含：
+详细说明参见[安装指南](docs/getting-started/installation.md)。
 
-- `抽取计划`：一行一个任务，仅管理任务ID、启用状态和备注。
-- `字段映射`：选择、重命名和转换字段；不填写时保留全部字段。
-- `过滤条件`：一行一个条件；同组内使用 AND，不同组之间使用 OR。
-- `数据对象`：声明任务使用的 Sheet、对象别名和唯一主表。
-- `关联关系`：配置 Sheet 之间的 `INNER JOIN` 或 `LEFT JOIN`。
-- `填写说明`：字段语义和操作流程。
+## 五分钟快速开始
 
-仅支持 Excel 数据源，输出支持 CSV、JSONL、XLSX。源 Excel 文件在执行 `run` 时传入，计划文件本身不保存数据源路径。一个任务可以声明同一源 Excel 中的多个 Sheet，并通过对象别名关联查询。
+生成计划模板：
 
-源工作表由 Pandas 加载到内存中，通过 `merge`、布尔掩码和 Series 运算完成关联、过滤和字段转换。
+```bash
+excelflow template extraction_plan.xlsx
+```
 
-过滤运算符支持 `=`、`!=`、`>`、`>=`、`<`、`<=`、`IN`、`NOT IN`、`BETWEEN`、`LIKE`、`NOT LIKE`、`IS NULL` 和 `IS NOT NULL`。
+填写模板后，依次校验、预览和执行。假设任务ID为 `order_report`，源数据为 `source.xlsx`：
 
-字段映射和过滤条件使用 `对象别名.字段` 格式。每个任务必须且只能有一个主表；相同“关联顺序”的多条关联记录会组合为多个 `AND` 条件。
+```bash
+excelflow validate extraction_plan.xlsx
+excelflow preview extraction_plan.xlsx order_report
+excelflow run extraction_plan.xlsx order_report source.xlsx csv output/order_report.csv
+```
+
+完整操作过程参见[快速开始](docs/getting-started/quickstart.md)和[模板填写完整教程](docs/tutorials/template-tutorial.md)。
+
+## 核心能力
+
+- 单 Sheet 与多 Sheet 数据抽取。
+- `INNER JOIN`、`LEFT JOIN`、多级关联和复合关联键。
+- AND/OR 条件组及 13 种过滤运算符。
+- `integer`、`decimal`、`string`、`datetime` 输出类型。
+- 四则运算、`coalesce`、`abs`、`round`、`clip` 安全表达式。
+- CSV、JSONL、XLSX 输出。
+- 计划校验和 Pandas 执行计划预览。
+
+## 文档
+
+- [文档首页](docs/index.md)
+- [安装指南](docs/getting-started/installation.md)
+- [核心概念](docs/getting-started/core-concepts.md)
+- [模板填写完整教程](docs/tutorials/template-tutorial.md)
+- [模板字段参考](docs/reference/template-reference.md)
+- [过滤运算符参考](docs/reference/filter-operators.md)
+- [表达式参考](docs/reference/expressions.md)
+- [命令行参考](docs/reference/cli.md)
+- [故障排查](docs/troubleshooting.md)
+
+## 示例
+
+[`examples/`](examples/README.md) 提供四个递进案例：单 Sheet、过滤、Sheet 关联、复合关联键与衍生列。示例计划和源数据已生成，可以直接运行。
 
 ## 安全边界
 
-转换表达式通过受限 AST 解释器执行，不使用 Python `eval()`。目前只允许字段引用、常量、四则运算、取模以及 `coalesce`、`abs`、`round`、`clip`。
+字段转换由受限 AST 解释器执行，不使用 Python `eval()`。表达式只能访问已声明的源字段、常量和受支持函数，不能执行文件操作、系统命令或任意 Python 代码。
 
-## 项目结构
+## 参与项目
 
-采用标准 `src/excelflow` 布局。`repository` 读取计划，`validator` 校验声明，`engine` 实现 Pandas 执行策略，`expression` 负责安全衍生列，`output` 提供输出策略，`service` 编排完整流程，`cli` 只处理命令行交互。
+- [贡献指南](CONTRIBUTING.md)
+- [开发环境](docs/development/development.md)
+- [架构说明](docs/development/architecture.md)
+- [测试指南](docs/development/testing.md)
+- [安全策略](SECURITY.md)
+- [变更记录](CHANGELOG.md)
 
-## 教学示例
+源码托管于 [GitHub](https://github.com/unfallenwill/ExcelFlow)，问题和功能建议请提交到 [GitHub Issues](https://github.com/unfallenwill/ExcelFlow/issues)。
 
-[`examples/README.md`](examples/README.md) 提供从单 Sheet 抽取、条件过滤、Sheet 关联到复合关联键和衍生列的四课递进教程。示例计划和源数据已生成，可以直接运行。
-
-## 使用文档
-
-- [安装与运行教程](docs/installation.md)：安装 CLI、生成模板、校验、预览、执行、升级和常见问题。
-- [字段映射表达式指南](docs/expression-guide.md)：字段引用、四则运算、`coalesce`、`abs`、`round`、`clip` 和正负超窗计算。
+ExcelFlow 使用 [MIT License](LICENSE) 发布。

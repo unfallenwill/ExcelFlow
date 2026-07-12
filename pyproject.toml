@@ -3,11 +3,18 @@ name = "excelflow"
 version = "0.1.0"
 description = "Excel-declared data extraction powered by Pandas"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "openpyxl>=3.1.5",
     "pandas>=3.0.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/unfallenwill/ExcelFlow"
+Documentation = "https://github.com/unfallenwill/ExcelFlow/tree/main/docs"
+Repository = "https://github.com/unfallenwill/ExcelFlow"
+Issues = "https://github.com/unfallenwill/ExcelFlow/issues"
 
 [project.scripts]
 excelflow = "excelflow.cli:main"

@@ -2,6 +2,8 @@
 
 这套示例按照从简单到复杂的顺序，帮助用户理解 ExcelFlow 的每一张配置表。所有命令都在项目根目录执行。
 
+如果是第一次使用，建议先阅读[核心概念](../docs/getting-started/core-concepts.md)；想理解每一项为什么这样填写，请阅读[模板填写完整教程](../docs/tutorials/template-tutorial.md)。
+
 先生成教学文件：
 
 ```bash
