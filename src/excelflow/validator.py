@@ -58,7 +58,9 @@ class SpecValidator:
                 field = str(item.get("源字段" if label == "字段映射" else "字段") or "").strip()
                 expression = str(item.get("转换表达式") or "").strip()
                 if not expression and (not QUALIFIED_FIELD.fullmatch(field) or field.split(".")[0] not in aliases[task]): errors.append(f"{label}第{row}行: 字段引用无效")
-                if label == "字段映射" and not SAFE_FIELD.fullmatch(str(item.get("目标字段") or "")): errors.append(f"字段映射第{row}行: 目标字段不合法")
+                if label == "字段映射":
+                    if not SAFE_FIELD.fullmatch(str(item.get("目标字段") or "")): errors.append(f"字段映射第{row}行: 目标字段不合法")
+                    if str(item.get("目标类型") or "").strip().lower() not in {"integer", "decimal", "string", "datetime"}: errors.append(f"字段映射第{row}行: 目标类型必须从下拉框选择")
                 if label == "过滤条件":
                     operator = str(item.get("运算符") or "").upper()
                     if operator not in self.operators: errors.append(f"过滤条件第{row}行: 不支持的运算符")

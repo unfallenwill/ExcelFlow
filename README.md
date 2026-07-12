@@ -41,3 +41,7 @@ uv run python -m excelflow validate extraction_plan.xlsx
 ## 项目结构
 
 采用标准 `src/excelflow` 布局。`repository` 读取计划，`validator` 校验声明，`engine` 实现 Pandas 执行策略，`expression` 负责安全衍生列，`output` 提供输出策略，`service` 编排完整流程，`cli` 只处理命令行交互。
+
+## 教学示例
+
+[`examples/README.md`](examples/README.md) 提供从单 Sheet 抽取、条件过滤、Sheet 关联到复合关联键和衍生列的四课递进教程。示例计划和源数据已生成，可以直接运行。

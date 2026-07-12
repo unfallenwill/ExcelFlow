@@ -33,7 +33,7 @@ def create_template(path: Path) -> None:
     fields = wb.create_sheet("字段映射"); fields.append(FIELD_HEADERS)
     fields.append(["demo_orders", "o.order_id", "order_id", "integer", "", 1, ""])
     fields.append(["demo_orders", "", "total_amount", "decimal", "coalesce(i.quantity, 0) * coalesce(i.unit_price, 0)", 2, "Pandas安全表达式"])
-    _style(fields, [18, 22, 20, 16, 52, 12, 28])
+    _style(fields, [18, 22, 20, 16, 52, 12, 28]); _validation(fields, "D", ["integer", "decimal", "string", "datetime"], 5000)
     filters = wb.create_sheet("过滤条件"); filters.append(FILTER_HEADERS)
     filters.append(["demo_orders", 1, 1, "o.status", "=", "paid", "", "组内AND，组间OR"])
     _style(filters, [18, 12, 12, 20, 14, 24, 24, 32]); _validation(filters, "E", ["=", "!=", ">", ">=", "<", "<=", "IN", "NOT IN", "BETWEEN", "LIKE", "NOT LIKE", "IS NULL", "IS NOT NULL"], 5000)
@@ -44,6 +44,7 @@ def create_template(path: Path) -> None:
         ("关联关系", "支持 INNER JOIN 和 LEFT JOIN；相同关联顺序的多行组成复合关联键"),
         ("字段", "映射、过滤和表达式字段使用 别名.字段"),
         ("转换表达式", "支持 + - * / %、coalesce、abs、round，例如 coalesce(i.quantity, 0) * i.price"),
+        ("目标类型", "从下拉框选择 integer、decimal、string 或 datetime，执行时会转换输出列类型"),
         ("过滤条件", "同组内 AND，不同组之间 OR；IN 值用英文逗号分隔"),
         ("输出", "执行 run 时分别指定输出格式（csv/jsonl/xlsx）和输出路径"),
     ]: guide.append(row)

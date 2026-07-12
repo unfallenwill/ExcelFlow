@@ -83,7 +83,13 @@ class PandasExtractionEngine(ExtractionEngine):
         output = pd.DataFrame(index=frame.index)
         for item in fields:
             expression = str(item.get("转换表达式") or "").strip()
-            output[str(item["目标字段"])] = self.evaluator.evaluate(expression, frame) if expression else frame[str(item["源字段"])]
+            value = self.evaluator.evaluate(expression, frame) if expression else frame[str(item["源字段"])]
+            target_type = str(item.get("目标类型") or "").strip().lower()
+            if target_type in {"integer", "int"}: value = pd.to_numeric(value, errors="raise").astype("Int64")
+            elif target_type in {"decimal", "float", "number"}: value = pd.to_numeric(value, errors="raise").astype("Float64")
+            elif target_type in {"string", "str", "text"}: value = value.astype("string")
+            elif target_type in {"datetime", "date"}: value = pd.to_datetime(value, errors="raise")
+            output[str(item["目标字段"])] = value
         return output.reset_index(drop=True)
 
     def execute(self, spec: ExtractionSpec, task_id: str, source: Path) -> pd.DataFrame:
