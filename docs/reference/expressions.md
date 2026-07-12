@@ -12,64 +12,571 @@ if_else((o.amount >= 1000) and (o.status == "paid"), "大额", "普通")
 
 空条件按 `False` 处理。函数名不区分大小写，字段名区分大小写。`if_else` 会先计算三个参数，不提供短路求值。
 
-## 空值与数值函数
+## 空值与类型规则
 
-| 函数 | 作用 | 示例 |
+以下规则适用于全部函数，逐函数详解只在该函数行为与此不同时才重复说明：
+
+- **空值传播**：字符串拼接与清理类函数（`concat`、`concat_ws`、`upper`、`lower`、`trim`、`length`、`replace`、`substring`）遇到任意空值输入时结果为空。
+- **空值即假**：判断类函数（`contains`、`startswith`、`endswith`）遇到空值输入时返回 `False`，而不是空。
+- **严格报错**：`to_number`、`to_date`，以及日期函数遇到非法输入或不支持的 `unit` 时会让任务失败；其他数值函数遵循 Pandas/NumPy 行为（例如负数开平方返回空值并产生运行时警告）。
+- **类型标注**：本页"类型"按 ExcelFlow 语义标注（数值 / 字符串 / 日期 / 布尔 / 枚举），不写 Pandas 内部 dtype。
+
+## 函数速查表
+
+| 函数 | 作用 |
+|---|---|
+| `coalesce(value, default)` | 用默认值替换空值 |
+| `is_null(value)` | 判断是否为空 |
+| `if_else(condition, yes, no)` | 条件选择 |
+| `abs(value)` | 绝对值 |
+| `round(value[, digits])` | 四舍五入 |
+| `clip(value, lower, upper)` | 把列限制在区间内 |
+| `ceil(value)` / `floor(value)` | 向上 / 向下取整 |
+| `sqrt(value)` | 平方根 |
+| `power(value, exponent)` | 幂运算 |
+| `min_value(...)` / `max_value(...)` | 逐行多值取最小 / 最大 |
+| `concat(a, b, ...)` | 直接拼接 |
+| `concat_ws(separator, a, b, ...)` | 用分隔符拼接 |
+| `upper(value)` / `lower(value)` | 转大写 / 小写 |
+| `trim(value)` | 删除首尾空白 |
+| `length(value)` | 字符长度 |
+| `replace(value, old, new)` | 按普通文本替换 |
+| `substring(value, start[, length])` | 截取子串 |
+| `contains` / `startswith` / `endswith` | 文本包含 / 开头 / 结尾判断 |
+| `to_number(value)` | 严格转数值 |
+| `to_string(value)` | 转可空字符串 |
+| `to_date(value)` | 严格转日期 |
+| `dateformat(value, format)` | 日期格式化为字符串 |
+| `year` / `month` / `day` | 提取年 / 月 / 日 |
+| `date_add(value, amount, unit)` | 日期加减 |
+| `date_diff(left, right, unit)` | 日期差值（`left - right`） |
+
+## 空值与条件函数
+
+### `coalesce(value, default)`
+
+用默认值替换空值。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 任意 | 是 | 待判断的值或列。 |
+| `default` | 任意 | 是 | `value` 为空时使用的替代值。 |
+
+**返回**：与 `value` 同类型；非空返回原值，空返回 `default`。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
 |---|---|---|
-| `coalesce(value, default)` | 用默认值替换空值 | `coalesce(o.amount, 0)` |
-| `is_null(value)` | 判断是否为空 | `is_null(o.amount)` |
-| `abs(value)` | 绝对值 | `abs(o.actual-o.plan)` |
-| `round(value[, digits])` | 四舍五入，默认 0 位 | `round(o.amount, 2)` |
-| `clip(value, lower, upper)` | 限制 Series 范围 | `clip(o.score, 0, 100)` |
-| `ceil(value)` / `floor(value)` | 向上/向下取整 | `ceil(o.amount)` |
-| `sqrt(value)` / `power(value, exponent)` | 平方根/幂 | `power(o.value, 2)` |
-| `min_value(...)` / `max_value(...)` | 同一行多个值取最小/最大 | `max_value(o.amount, 0)` |
+| `None` | `coalesce(None, 0)` | `0` |
+| 列 `o.amount` | `coalesce(o.amount, 0)` | 逐行：空值变 `0`，其余不变 |
 
-`min_value` 和 `max_value` 是逐行函数；聚合规则中的 `min`、`max` 是跨行函数。
+**备注**：恰好接受 2 个参数；标量与列均支持。
+
+### `is_null(value)`
+
+判断值是否为空。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 任意 | 是 | 待判断的值或列。 |
+
+**返回**：布尔；`True` 表示缺失。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `None` | `is_null(None)` | `True` |
+| 列 `o.amount` | `is_null(o.amount)` | 逐行布尔 |
+
+### `if_else(condition, yes, no)`
+
+按条件在两个值之间选择。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `condition` | 布尔 | 是 | 选择依据；空按 `False` 处理。 |
+| `yes` | 任意 | 是 | 条件为真时的值。 |
+| `no` | 任意 | 是 | 条件为假时的值。 |
+
+**返回**：类型随 `yes` / `no`；逐行按条件取值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `True` | `if_else(True, "大额", "普通")` | `"大额"` |
+| `None` | `if_else(None, 1, 0)` | `0` |
+| 列 `o.amount` | `if_else(o.amount >= 1000, "大额", "普通")` | 逐行选择 |
+
+**备注**：不短路，`yes` 和 `no` 都会被求值；条件可以是比较、`and`、`or`、`not` 或 `is_null` 的结果。
+
+## 数值函数
+
+### `abs(value)`
+
+绝对值。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 数值 | 是 | 数值或数值列。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `-3` | `abs(-3)` | `3` |
+| 列 `o.actual`、`o.plan` | `abs(o.actual - o.plan)` | 逐行绝对差 |
+
+### `round(value[, digits])`
+
+四舍五入。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 数值 | 是 | 待舍入的数值或列。 |
+| `digits` | 整数 | 否 | 保留的小数位数，缺省 `0`。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `10.234` | `round(10.234, 2)` | `10.23` |
+| `10.234` | `round(10.234)` | `10.0` |
+
+### `clip(value, lower, upper)`
+
+把列的每个值限制在闭区间 `[lower, upper]` 内：小于 `lower` 取 `lower`，大于 `upper` 取 `upper`。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 数值列 | 是 | 待限制的列。 |
+| `lower` | 数值或数值列 | 是 | 下界。 |
+| `upper` | 数值或数值列 | 是 | 上界。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| 列 `o.score` | `clip(o.score, 0, 100)` | 低于 0 变 0，高于 100 变 100 |
+| 列 `v.actual_day`、`v.plan_day`、`v.window_days` | `clip(v.actual_day, v.plan_day - v.window_days, v.plan_day + v.window_days)` | 把实际日限制在计划日 ± 窗口内 |
+
+**备注**：**仅作用于列**；对标量调用（如 `clip(5, 0, 10)`）会报错。`lower` / `upper` 既可以是常量也可以是列。
+
+### `ceil(value)` / `floor(value)`
+
+`ceil` 向上取整，`floor` 向下取整。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 数值 | 是 | 数值或数值列。 |
+
+**返回**：数值（取整后的浮点，遵循 NumPy）。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `10.2` | `ceil(10.2)` | `11.0` |
+| `10.8` | `floor(10.8)` | `10.0` |
+
+### `sqrt(value)`
+
+平方根。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 数值 | 是 | 数值或数值列。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `9` | `sqrt(9)` | `3.0` |
+
+**备注**：负数返回空值并产生运行时警告（遵循 NumPy）。
+
+### `power(value, exponent)`
+
+幂运算，计算 `value` 的 `exponent` 次方。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 数值 | 是 | 底数。 |
+| `exponent` | 数值 | 是 | 指数。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `2`、`3` | `power(2, 3)` | `8.0` |
+| 列 `o.value` | `power(o.value, 2)` | 逐行平方 |
+
+### `min_value(...)` / `max_value(...)`
+
+在同一行的多个参数中取最小值 / 最大值，逐行跳过空值。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `...` | 数值 | 是（≥1 个） | 至少一个数值或数值列。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `3`、`1`、`2` | `min_value(3, 1, 2)` | `1` |
+| `3`、`1`、`2` | `max_value(3, 1, 2)` | `3` |
+| 列 `o.amount`、常量 `0` | `max_value(o.amount, 0)` | 逐行：把负数抬到 `0` |
+
+**备注**：这是**逐行**函数，区别于聚合规则中的 `min` / `max`（跨行）。同一行所有参数都为空时结果为空。
 
 ## 字符串函数
 
-字符串函数会把非字符串输入转换为 Pandas `string`。`concat`、`concat_ws`、大小写、清理、长度、替换和截取遇到空值时继续为空；`contains`、`startswith`、`endswith` 遇到空值时返回 `False`。需要把空值当空字符串拼接时，显式使用 `coalesce(value, "")`。
+字符串函数会把非字符串输入转换为 Pandas `string`。除判断类函数外，遇到空值时结果为空（见[空值与类型规则](#空值与类型规则)）。需要把空值当空字符串拼接时，显式使用 `coalesce(value, "")`。
 
-| 函数 | 作用 | 示例 |
+### `concat(a, b, ...)`
+
+把所有参数按顺序拼接为单个字符串。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `a, b, ...` | 任意 | 是（≥1 个） | 至少一个值；非字符串自动转换。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
 |---|---|---|
-| `concat(a, b, ...)` | 直接拼接，至少一个参数 | `concat(p.first, p.last)` |
-| `concat_ws(separator, a, b, ...)` | 用分隔符拼接 | `concat_ws("-", p.region, p.code)` |
-| `upper(value)` / `lower(value)` | 大小写转换 | `upper(p.code)` |
-| `trim(value)` | 删除首尾空格 | `trim(p.name)` |
-| `length(value)` | 字符长度 | `length(p.name)` |
-| `replace(value, old, new)` | 按普通文本替换，不使用正则 | `replace(p.phone, " ", "")` |
-| `substring(value, start[, length])` | 从 0 开始截取，支持负索引 | `substring(p.code, 0, 4)` |
-| `contains(value, text)` | 是否包含普通文本 | `contains(p.name, "医院")` |
-| `startswith(value, text)` | 是否以文本开头 | `startswith(p.code, "CN")` |
-| `endswith(value, text)` | 是否以文本结尾 | `endswith(p.file, ".xlsx")` |
+| `"ID-"`、列 `o.code` | `concat("ID-", o.code)` | 例如 `"ID-CN9"` |
+| 列 `p.first`、`" "`、`p.last` | `concat(p.first, " ", p.last)` | 逐行全名 |
+
+**备注**：任意参数为空 → 结果为空。
+
+### `concat_ws(separator, a, b, ...)`
+
+用分隔符把其余参数拼接为字符串。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `separator` | 字符串 | 是 | 分隔符。 |
+| `a, b, ...` | 任意 | 是（≥1 个） | 至少一个值；非字符串自动转换。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"A"`、`"B"` | `concat_ws("/", "A", "B")` | `"A/B"` |
+| 列 `p.region`、`p.code` | `concat_ws("-", p.region, p.code)` | 例如 `"华东-CN9"` |
+
+**备注**：任意值为空 → 结果为空（不把空值当空串）。
+
+### `upper(value)` / `lower(value)`
+
+`upper` 转大写，`lower` 转小写。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 字符串 | 是 | 待转换的值或列。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"ab-12"` | `upper("ab-12")` | `"AB-12"` |
+| `"CN-9"` | `lower("CN-9")` | `"cn-9"` |
+
+### `trim(value)`
+
+删除首尾空白。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 字符串 | 是 | 待清理的值或列。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `" Alice "` | `trim(" Alice ")` | `"Alice"` |
+
+### `length(value)`
+
+字符长度。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 字符串 | 是 | 待计数的值或列。 |
+
+**返回**：整数（可空）。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"Smith"` | `length("Smith")` | `5` |
+
+### `replace(value, old, new)`
+
+把 `old` 替换为 `new`。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 字符串 | 是 | 原文本。 |
+| `old` | 字符串 | 是 | 被替换的文本。 |
+| `new` | 字符串 | 是 | 替换为的文本。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"a-b"` | `replace("a-b", "-", "")` | `"ab"` |
+| 列 `p.phone` | `replace(p.phone, " ", "")` | 逐行去掉空格 |
+
+**备注**：按普通文本替换，不使用正则。
+
+### `substring(value, start[, length])`
+
+截取子串。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 字符串 | 是 | 原文本。 |
+| `start` | 整数 | 是 | 起始位置，从 `0` 开始，支持负索引。 |
+| `length` | 整数 | 否 | 截取长度；省略则取到末尾。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"abcd"` | `substring("abcd", 1)` | `"bcd"` |
+| `"abcd"` | `substring("abcd", 0, 2)` | `"ab"` |
+
+### `contains(value, text)` / `startswith(value, text)` / `endswith(value, text)`
+
+判断文本是否包含 / 以 `text` 开头 / 以 `text` 结尾。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 字符串 | 是 | 原文本。 |
+| `text` | 字符串 | 是 | 要查找的文本。 |
+
+**返回**：布尔。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"CN-9"` | `contains("CN-9", "CN")` | `True` |
+| `"CN-9"` | `startswith("CN-9", "CN")` | `True` |
+| `"a.xlsx"` | `endswith("a.xlsx", ".xlsx")` | `True` |
+
+**备注**：按普通文本匹配，不使用正则；空值输入返回 `False`（不是空）。
 
 ## 类型和日期函数
 
-| 函数 | 作用 | 示例 |
+### `to_number(value)`
+
+把值严格转换为数值。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 任意 | 是 | 待转换的值或列。 |
+
+**返回**：数值。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
 |---|---|---|
-| `to_number(value)` | 严格转换为数值 | `to_number(o.amount_text)` |
-| `to_string(value)` | 转换为可空字符串 | `to_string(o.order_id)` |
-| `to_date(value)` | 严格转换为日期时间 | `to_date(v.visit_date)` |
-| `dateformat(value, format)` | 按 Python/Pandas 格式输出字符串 | `dateformat(v.date, "%Y-%m-%d")` |
-| `year(value)` / `month(value)` / `day(value)` | 提取年月日 | `year(v.date)` |
-| `date_add(value, amount, unit)` | 日期加减 | `date_add(v.date, 3, "day")` |
-| `date_diff(left, right, unit)` | 返回 `left-right` 的差值 | `date_diff(v.actual, v.plan, "day")` |
+| `"10.5"` | `to_number("10.5")` | `10.5` |
 
-`date_add` 和 `date_diff` 支持 `day/days`、`hour/hours`、`minute/minutes`，结果允许小数。`to_number` 使用严格数值转换；日期函数使用严格日期解析；非法输入或不支持的日期单位会让任务失败。其他数值函数遵循 Pandas/NumPy 行为，例如负数开平方可能得到空值并产生运行时警告。
+**备注**：严格转换；无法解析的值（如 `"bad"`）会让任务失败。
 
-## 条件函数
+### `to_string(value)`
 
-```text
-if_else(condition, value_if_true, value_if_false)
-```
+把值转换为可空字符串。
 
-条件可以是比较、`and`、`or`、`not` 或 `is_null` 的结果：
+**参数**
 
-```text
-if_else(is_null(o.amount), 0, o.amount)
-if_else((o.amount >= 1000) and (o.status == "paid"), "大额已支付", "其他")
-```
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 任意 | 是 | 待转换的值或列。 |
+
+**返回**：字符串（可空）。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `123` | `to_string(123)` | `"123"` |
+| `None` | `to_string(None)` | 空 |
+
+### `to_date(value)`
+
+把值严格转换为日期时间。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 任意 | 是 | 待转换的值或列。 |
+
+**返回**：日期时间。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `"2024-02-29"` | `to_date("2024-02-29")` | `2024-02-29` |
+
+**备注**：严格日期解析；无法解析的值（如 `"not-a-date"`）会让任务失败。
+
+### `dateformat(value, format)`
+
+按指定格式把日期输出为字符串。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 日期 | 是 | 日期值或列。 |
+| `format` | 字符串 | 是 | Python / Pandas `strftime` 格式，如 `"%Y-%m-%d"`。 |
+
+**返回**：字符串。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `2024-02-29` | `dateformat(o.date, "%Y/%m/%d")` | `"2024/02/29"` |
+
+### `year(value)` / `month(value)` / `day(value)`
+
+从日期中提取年 / 月 / 日。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 日期 | 是 | 日期值或列。 |
+
+**返回**：数值（年 / 月 / 日的整数；含空值的列返回浮点）。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `2024-02-29` | `year(o.date)` | `2024` |
+| `2024-02-29` | `month(o.date)` | `2` |
+| `2024-02-29` | `day(o.date)` | `29` |
+
+### `date_add(value, amount, unit)`
+
+日期加减：把 `value` 加上以 `unit` 为单位的 `amount`。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `value` | 日期 | 是 | 起始日期。 |
+| `amount` | 数值 | 是 | 增量，可为小数或负数。 |
+| `unit` | 枚举 | 是 | `day` / `days`、`hour` / `hours`、`minute` / `minutes`。 |
+
+**返回**：日期时间。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `2024-02-29`、`3`、`"day"` | `date_add(o.date, 3, "day")` | `2024-03-03` |
+| `2024-02-29`、`120`、`"minutes"` | `date_add(o.date, 120, "minutes")` | `2024-02-29 02:00` |
+
+**备注**：不支持的 `unit`（如 `"month"`）会让任务失败。
+
+### `date_diff(left, right, unit)`
+
+计算 `left - right` 的差值，以 `unit` 为单位，结果可为小数。
+
+**参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|:---:|---|
+| `left` | 日期 | 是 | 被减数。 |
+| `right` | 日期 | 是 | 减数。 |
+| `unit` | 枚举 | 是 | `day` / `days`、`hour` / `hours`、`minute` / `minutes`。 |
+
+**返回**：数值（`left - right`，带小数）。
+
+**示例**
+
+| 输入 | 表达式 | 结果 |
+|---|---|---|
+| `2024-03-02`、`2024-02-29`、`"day"` | `date_diff(o.actual, o.plan, "day")` | `2` |
+| 同一日期、`"hour"` | `date_diff(date_add(o.date, 3, "hour"), o.date, "hour")` | `3` |
+
+**备注**：结果是 `left` 减 `right`（顺序敏感）；不支持 `month` / `year`。
 
 ## 嵌套示例
 

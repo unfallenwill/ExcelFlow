@@ -12,3 +12,6 @@ wheels/
 # Office temporary lock files
 .~*
 ~$*
+
+# MkDocs build output
+site/

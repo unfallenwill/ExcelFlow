@@ -60,3 +60,4 @@ nav:
       - 开发环境: development/development.md
       - 测试: development/testing.md
       - 发布: development/release.md
+      - 函数文档编写指南: development/function-documentation-guide.md
