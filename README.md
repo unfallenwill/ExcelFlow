@@ -45,3 +45,7 @@ uv run python -m excelflow validate extraction_plan.xlsx
 ## 教学示例
 
 [`examples/README.md`](examples/README.md) 提供从单 Sheet 抽取、条件过滤、Sheet 关联到复合关联键和衍生列的四课递进教程。示例计划和源数据已生成，可以直接运行。
+
+## 使用文档
+
+- [字段映射表达式指南](docs/expression-guide.md)：字段引用、四则运算、`coalesce`、`abs`、`round`、`clip` 和正负超窗计算。
