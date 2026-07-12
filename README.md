@@ -1,14 +1,20 @@
-# pdcheck
+# ExcelFlow
 
-一个由 Excel 声明驱动的数据抽取工具。Excel 管理数据源、抽取任务和字段映射；程序负责校验、SQL 预览和执行。
+一个由 Excel 声明驱动、使用 Pandas 执行的数据抽取工具。Excel 管理抽取任务、Sheet 关联、过滤和字段映射。
 
 ## 快速开始
 
 ```bash
-uv run python main.py template extraction_plan.xlsx
-uv run python main.py validate extraction_plan.xlsx
-uv run python main.py preview extraction_plan.xlsx demo_orders
-uv run python main.py run extraction_plan.xlsx demo_orders ./data/source.xlsx
+uv run excelflow template extraction_plan.xlsx
+uv run excelflow validate extraction_plan.xlsx
+uv run excelflow preview extraction_plan.xlsx demo_orders
+uv run excelflow run extraction_plan.xlsx demo_orders ./data/source.xlsx
+```
+
+也可以通过模块入口运行：
+
+```bash
+uv run python -m excelflow validate extraction_plan.xlsx
 ```
 
 生成的工作簿包含：
@@ -24,12 +30,16 @@ uv run python main.py run extraction_plan.xlsx demo_orders ./data/source.xlsx
 
 仅支持 Excel 数据源，输出支持 CSV、JSONL、XLSX。源 Excel 文件在执行 `run` 时传入，计划文件本身不保存数据源路径。一个任务可以声明同一源 Excel 中的多个 Sheet，并通过对象别名关联查询。
 
-源工作表会加载到内存中执行筛选、字段转换和增量区间判断。
+源工作表由 Pandas 加载到内存中，通过 `merge`、布尔掩码和 Series 运算完成关联、过滤、字段转换和增量区间判断。
 
-过滤运算符支持 `=`、`!=`、`>`、`>=`、`<`、`<=`、`IN`、`NOT IN`、`BETWEEN`、`LIKE`、`NOT LIKE`、`IS NULL` 和 `IS NOT NULL`。条件值使用参数化查询，不作为 SQL 片段执行。
+过滤运算符支持 `=`、`!=`、`>`、`>=`、`<`、`<=`、`IN`、`NOT IN`、`BETWEEN`、`LIKE`、`NOT LIKE`、`IS NULL` 和 `IS NOT NULL`。
 
 字段映射、过滤条件和增量字段使用 `对象别名.字段` 格式。每个任务必须且只能有一个主表；相同“关联顺序”的多条关联记录会组合为多个 `AND` 条件。
 
 ## 安全边界
 
-`源对象`和普通字段名会进行标识符校验。`过滤条件`及`转换表达式`属于受信任配置，会作为 SQL 片段原样执行，因此 Excel 的编辑权限应只授予可信人员，并在运行前使用 `preview` 审核 SQL。
+转换表达式通过受限 AST 解释器执行，不使用 Python `eval()`。目前只允许字段引用、常量、四则运算、取模以及 `coalesce`、`abs`、`round`。
+
+## 项目结构
+
+采用标准 `src/excelflow` 布局。`repository` 读取计划，`validator` 校验声明，`engine` 实现 Pandas 执行策略，`expression` 负责安全衍生列，`output` 提供输出策略，`service` 编排完整流程，`cli` 只处理命令行交互。
