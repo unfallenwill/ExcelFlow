@@ -2,7 +2,7 @@
 
 本课解决最常见的问题：源 Excel 有很多列，但最终只想要订单号、状态和金额。
 
-可运行计划是 [`examples/tutorial/01_single_sheet.xlsx`](../../examples/tutorial/01_single_sheet.xlsx)，源数据是 [`examples/tutorial/source.xlsx`](../../examples/tutorial/source.xlsx)。
+可运行计划是 [`examples/tutorial/01_single_sheet.xlsx`](https://github.com/unfallenwill/ExcelFlow/blob/main/examples/tutorial/01_single_sheet.xlsx)，源数据是 [`examples/tutorial/source.xlsx`](https://github.com/unfallenwill/ExcelFlow/blob/main/examples/tutorial/source.xlsx)。
 
 ## 先看源数据
 

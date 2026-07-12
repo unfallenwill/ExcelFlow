@@ -6,7 +6,7 @@
 明细金额 = 数量 × 单价
 ```
 
-可运行计划是 [`examples/tutorial/04_derived_columns.xlsx`](../../examples/tutorial/04_derived_columns.xlsx)。
+可运行计划是 [`examples/tutorial/04_derived_columns.xlsx`](https://github.com/unfallenwill/ExcelFlow/blob/main/examples/tutorial/04_derived_columns.xlsx)。
 
 ## 为什么需要复合关联键
 

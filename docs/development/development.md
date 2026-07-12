@@ -44,3 +44,20 @@ uv.lock          锁定依赖
 - 模板或语义发生变化时，同步更新示例和文档。
 - 不执行任意用户表达式；扩展表达式时维持白名单设计。
 - 提交前运行完整测试，并确认 `git diff` 中没有生成物、临时 Excel 锁文件或敏感数据。
+
+## 本地构建文档
+
+安装文档依赖并以严格模式构建：
+
+```bash
+uv sync --group docs
+uv run --group docs mkdocs build --strict
+```
+
+本地预览：
+
+```bash
+uv run --group docs mkdocs serve
+```
+
+推送到 `main` 后，`.github/workflows/docs.yml` 会自动构建并部署到 GitHub Pages。

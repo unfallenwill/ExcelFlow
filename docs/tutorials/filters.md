@@ -2,7 +2,7 @@
 
 本课在订单中只保留“已经支付，并且金额不少于 100”的记录。
 
-可运行计划是 [`examples/tutorial/02_filters.xlsx`](../../examples/tutorial/02_filters.xlsx)。它沿用[单 Sheet 教程](single-sheet.md)的任务、数据对象和字段映射，只增加“过滤条件”。
+可运行计划是 [`examples/tutorial/02_filters.xlsx`](https://github.com/unfallenwill/ExcelFlow/blob/main/examples/tutorial/02_filters.xlsx)。它沿用[单 Sheet 教程](single-sheet.md)的任务、数据对象和字段映射，只增加“过滤条件”。
 
 ## 先把业务语言写清楚
 

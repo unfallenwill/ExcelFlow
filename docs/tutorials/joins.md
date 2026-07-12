@@ -2,7 +2,7 @@
 
 订单 Sheet 只有客户编号，但报表希望显示客户姓名。本课用相同的 `customer_id` 把“订单”和“客户”对应起来。
 
-可运行计划是 [`examples/tutorial/03_join.xlsx`](../../examples/tutorial/03_join.xlsx)。
+可运行计划是 [`examples/tutorial/03_join.xlsx`](https://github.com/unfallenwill/ExcelFlow/blob/main/examples/tutorial/03_join.xlsx)。
 
 ## 为什么需要关联
 

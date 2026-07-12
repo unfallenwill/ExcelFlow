@@ -60,6 +60,7 @@ excelflow run extraction_plan.xlsx order_report source.xlsx csv output/order_rep
 
 ## 文档
 
+- [在线文档](https://unfallenwill.github.io/ExcelFlow/)
 - [文档首页](docs/index.md)
 - [安装指南](docs/getting-started/installation.md)
 - [核心概念](docs/getting-started/core-concepts.md)

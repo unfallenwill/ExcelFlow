@@ -7,6 +7,7 @@
 ### Added
 
 - 重构后的开源项目文档体系。
+- MkDocs Material 文档站和 GitHub Pages 自动部署。
 - MIT 许可证及贡献、安全、行为准则文档。
 
 ## [0.1.0]

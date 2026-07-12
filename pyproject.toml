@@ -10,9 +10,14 @@ dependencies = [
     "pandas>=3.0.3",
 ]
 
+[dependency-groups]
+docs = [
+    "mkdocs-material>=9.6,<10",
+]
+
 [project.urls]
 Homepage = "https://github.com/unfallenwill/ExcelFlow"
-Documentation = "https://github.com/unfallenwill/ExcelFlow/tree/main/docs"
+Documentation = "https://unfallenwill.github.io/ExcelFlow/"
 Repository = "https://github.com/unfallenwill/ExcelFlow"
 Issues = "https://github.com/unfallenwill/ExcelFlow/issues"
 

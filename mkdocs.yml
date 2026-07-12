@@ -1,0 +1,61 @@
+site_name: ExcelFlow
+site_description: 通过 Excel 计划声明并执行多 Sheet 数据抽取
+site_url: https://unfallenwill.github.io/ExcelFlow/
+repo_url: https://github.com/unfallenwill/ExcelFlow
+repo_name: unfallenwill/ExcelFlow
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+
+nav:
+  - 首页: index.md
+  - 开始使用:
+      - 安装: getting-started/installation.md
+      - 五分钟快速开始: getting-started/quickstart.md
+      - 核心概念: getting-started/core-concepts.md
+  - 教程:
+      - 模板填写完整教程: tutorials/template-tutorial.md
+      - 单 Sheet 抽取: tutorials/single-sheet.md
+      - 过滤条件: tutorials/filters.md
+      - Sheet 关联: tutorials/joins.md
+      - 衍生列: tutorials/derived-columns.md
+  - 操作指南:
+      - 正负超窗天数: how-to/window-overrun.md
+      - 多任务计划: how-to/multi-task-plan.md
+      - 处理空值: how-to/handle-missing-values.md
+      - 选择关联类型: how-to/choose-join-type.md
+  - 参考:
+      - 模板字段: reference/template-reference.md
+      - 过滤运算符: reference/filter-operators.md
+      - 表达式: reference/expressions.md
+      - 数据类型: reference/data-types.md
+      - CLI: reference/cli.md
+  - 故障排查: troubleshooting.md
+  - 参与开发:
+      - 架构: development/architecture.md
+      - 开发环境: development/development.md
+      - 测试: development/testing.md
+      - 发布: development/release.md

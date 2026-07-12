@@ -2,7 +2,7 @@
 
 这份教程面向第一次配置数据抽取的用户。目标不是让你记住所有字段，而是理解每一项配置解决什么问题。
 
-我们始终使用同一套订单数据，并逐步从“取出三列”扩展到“多 Sheet 关联、过滤和计算明细金额”。示例文件位于 [`examples/tutorial/`](../../examples/tutorial/)。
+我们始终使用同一套订单数据，并逐步从“取出三列”扩展到“多 Sheet 关联、过滤和计算明细金额”。示例文件位于 [`examples/tutorial/`](https://github.com/unfallenwill/ExcelFlow/tree/main/examples/tutorial)。
 
 ## 开始前：区分两个 Excel
 
