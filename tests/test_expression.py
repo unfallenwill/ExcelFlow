@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import pandas as pd
 
@@ -36,6 +37,17 @@ class SafeExpressionEvaluatorTest(unittest.TestCase):
         expression = "v.actual_day - clip(v.actual_day, v.plan_day - v.window_days, v.plan_day + v.window_days)"
         result = self.evaluator.evaluate(expression, frame)
         self.assertEqual(result.tolist(), [-3, 4, 0])
+
+    def test_series_division_by_zero_propagates_inf(self):
+        # 当前契约: Series / 0 不抛 ZeroDivisionError，而是按 pandas 语义产生 inf，
+        # 并向下游聚合传播（sum 仍为 inf）。锁定该行为，使任何"对非有限值抛错"之类
+        # 的契约变更都必须显式更新本用例，避免静默把 inf 写进 CSV/JSON。
+        frame = pd.DataFrame({"i.price": [100.0, 50.0], "i.qty": [0, 5]})
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            result = self.evaluator.evaluate("i.price / i.qty", frame)
+        self.assertEqual(result.tolist(), [float("inf"), 10.0])
+        self.assertEqual(result.sum(), float("inf"))  # inf 会污染聚合总额
 
 
 if __name__ == "__main__":
