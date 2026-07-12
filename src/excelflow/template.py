@@ -43,7 +43,7 @@ def create_template(path: Path) -> None:
         ("数据对象", "每个任务必须且只能有一个主表；同一源 Excel 可配置多个 Sheet"),
         ("关联关系", "支持 INNER JOIN 和 LEFT JOIN；相同关联顺序的多行组成复合关联键"),
         ("字段", "映射、过滤和表达式字段使用 别名.字段"),
-        ("转换表达式", "支持 + - * / %、coalesce、abs、round，例如 coalesce(i.quantity, 0) * i.price"),
+        ("转换表达式", "支持 + - * / %、coalesce、abs、round、clip；例如 actual - clip(actual, lower, upper)"),
         ("目标类型", "从下拉框选择 integer、decimal、string 或 datetime，执行时会转换输出列类型"),
         ("过滤条件", "同组内 AND，不同组之间 OR；IN 值用英文逗号分隔"),
         ("输出", "执行 run 时分别指定输出格式（csv/jsonl/xlsx）和输出路径"),

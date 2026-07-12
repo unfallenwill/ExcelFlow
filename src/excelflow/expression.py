@@ -29,4 +29,5 @@ class SafeExpressionEvaluator:
             if name == "coalesce" and len(args) == 2: return args[0].fillna(args[1]) if isinstance(args[0], pd.Series) else args[0] if pd.notna(args[0]) else args[1]
             if name == "abs" and len(args) == 1: return abs(args[0])
             if name == "round" and len(args) in {1, 2}: return args[0].round(int(args[1])) if isinstance(args[0], pd.Series) else round(*args)
-        raise ValueError("转换表达式仅支持别名.字段、常量、四则运算、%、coalesce、abs 和 round")
+            if name == "clip" and len(args) == 3 and isinstance(args[0], pd.Series): return args[0].clip(lower=args[1], upper=args[2])
+        raise ValueError("转换表达式仅支持别名.字段、常量、四则运算、%、coalesce、abs、round 和 clip")

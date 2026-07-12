@@ -29,6 +29,16 @@ class SafeExpressionEvaluatorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.evaluator.evaluate("i.price > 1", self.frame)
 
+    def test_signed_window_overrun_days(self):
+        frame = pd.DataFrame({
+            "v.actual_day": [22, 35, 30],
+            "v.plan_day": [28, 28, 28],
+            "v.window_days": [3, 3, 3],
+        })
+        expression = "v.actual_day - clip(v.actual_day, v.plan_day - v.window_days, v.plan_day + v.window_days)"
+        result = self.evaluator.evaluate(expression, frame)
+        self.assertEqual(result.tolist(), [-3, 4, 0])
+
 
 if __name__ == "__main__":
     unittest.main()

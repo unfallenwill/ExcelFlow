@@ -36,7 +36,7 @@ uv run python -m excelflow validate extraction_plan.xlsx
 
 ## 安全边界
 
-转换表达式通过受限 AST 解释器执行，不使用 Python `eval()`。目前只允许字段引用、常量、四则运算、取模以及 `coalesce`、`abs`、`round`。
+转换表达式通过受限 AST 解释器执行，不使用 Python `eval()`。目前只允许字段引用、常量、四则运算、取模以及 `coalesce`、`abs`、`round`、`clip`。
 
 ## 项目结构
 
