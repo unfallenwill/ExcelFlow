@@ -4,7 +4,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from .schema import FIELD_HEADERS, FILTER_HEADERS, JOIN_HEADERS, OBJECT_HEADERS, PLAN_HEADERS
+from .schema import (AGGREGATION_HEADERS, FIELD_HEADERS, FILTER_HEADERS, GROUP_HEADERS,
+                     JOIN_HEADERS, OBJECT_HEADERS, PLAN_HEADERS)
 
 
 def _style(ws, widths):
@@ -37,13 +38,20 @@ def create_template(path: Path) -> None:
     filters = wb.create_sheet("过滤条件"); filters.append(FILTER_HEADERS)
     filters.append(["demo_orders", 1, 1, "o.status", "=", "paid", "", "组内AND，组间OR"])
     _style(filters, [18, 12, 12, 20, 14, 24, 24, 32]); _validation(filters, "E", ["=", "!=", ">", ">=", "<", "<=", "IN", "NOT IN", "BETWEEN", "LIKE", "NOT LIKE", "IS NULL", "IS NOT NULL"], 5000)
+    groups = wb.create_sheet("分组字段"); groups.append(GROUP_HEADERS)
+    _style(groups, [18, 22, 20, 16, 12, 32]); _validation(groups, "D", ["integer", "decimal", "string", "datetime"], 5000)
+    aggregations = wb.create_sheet("聚合规则"); aggregations.append(AGGREGATION_HEADERS)
+    _style(aggregations, [18, 22, 18, 20, 16, 14, 12, 32])
+    _validation(aggregations, "C", ["count", "count_all", "count_distinct", "sum", "avg", "min", "max", "first", "last", "concat_agg"], 5000)
+    _validation(aggregations, "E", ["integer", "decimal", "string", "datetime"], 5000)
     guide = wb.create_sheet("填写说明"); guide.append(["项目", "说明"])
     for row in [
         ("执行引擎", "Pandas；计划会被解释为 read_excel、merge、布尔过滤和 Series 运算，不执行 SQL 或 eval"),
         ("数据对象", "每个任务必须且只能有一个主表；同一源 Excel 可配置多个 Sheet"),
         ("关联关系", "支持 INNER JOIN 和 LEFT JOIN；相同关联顺序的多行组成复合关联键"),
         ("字段", "映射、过滤和表达式字段使用 别名.字段"),
-        ("转换表达式", "支持 + - * / %、coalesce、abs、round、clip；例如 actual - clip(actual, lower, upper)"),
+        ("转换表达式", "支持安全的数值、字符串、日期、条件函数；详见表达式参考"),
+        ("分组聚合", "分组字段定义结果维度，聚合规则支持计数、求和、平均值、极值及文本合并；聚合任务不再执行字段映射"),
         ("目标类型", "从下拉框选择 integer、decimal、string 或 datetime，执行时会转换输出列类型"),
         ("过滤条件", "同组内 AND，不同组之间 OR；IN 值用英文逗号分隔"),
         ("输出", "执行 run 时分别指定输出格式（csv/jsonl/xlsx）和输出路径"),

@@ -38,7 +38,7 @@ def empty_plan(filename: str, task_id: str, note: str):
     plan = workbook["抽取计划"]
     plan.delete_rows(2, plan.max_row)
     plan.append([task_id, "是", note])
-    for name in ("数据对象", "关联关系", "字段映射", "过滤条件"):
+    for name in ("数据对象", "关联关系", "字段映射", "过滤条件", "分组字段", "聚合规则"):
         sheet = workbook[name]
         sheet.delete_rows(2, sheet.max_row)
     return path, workbook
@@ -107,8 +107,19 @@ def lesson_04() -> None:
     workbook.save(path)
 
 
+def lesson_05() -> None:
+    path, workbook = empty_plan("05_aggregation.xlsx", "lesson_05", "按客户汇总订单")
+    add_customer_join(workbook, "lesson_05")
+    workbook["分组字段"].append(["lesson_05", "c.customer_name", "customer", "string", 1, "按客户分组"])
+    rules = workbook["聚合规则"]
+    rules.append(["lesson_05", "", "count_all", "order_count", "integer", "", 1, "订单行数"])
+    rules.append(["lesson_05", "o.amount", "sum", "total_amount", "decimal", "", 2, "订单总金额"])
+    rules.append(["lesson_05", "o.status", "concat_agg", "statuses", "string", "|", 3, "保持原顺序"])
+    workbook.save(path)
+
+
 if __name__ == "__main__":
     ROOT.mkdir(parents=True, exist_ok=True)
     source_workbook()
-    lesson_01(); lesson_02(); lesson_03(); lesson_04()
+    lesson_01(); lesson_02(); lesson_03(); lesson_04(); lesson_05()
     print(f"Tutorial generated in {ROOT}")

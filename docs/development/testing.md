@@ -11,7 +11,8 @@ uv run python -m unittest discover -s tests -v
 现有测试分为：
 
 - `test_cli.py`：控制台与模块入口、长短选项、输出内容、错误流和旧语法拒绝；
-- `test_expression.py`：安全表达式、支持函数和恶意语法拦截；
+- `test_expression.py`、`test_expression_functions.py`：安全表达式、字符串/日期/条件/数值函数和恶意语法拦截；
+- `test_aggregation.py`：聚合语义、模板兼容、校验和真实 Excel 端到端汇总；
 - `test_components.py`：过滤运算符、输出 Writer、Service 错误路径；
 - `test_main.py`：真实 Excel 计划和源数据的端到端抽取。
 

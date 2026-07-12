@@ -114,8 +114,31 @@ order_id,customer,product,quantity,unit_price,line_amount
 1001,张三,鼠标,1,129.0,129.0
 ```
 
+## 第 5 课：分组聚合
+
+计划文件：`tutorial/05_aggregation.xlsx`
+
+这一课按客户分组，统计订单数、订单总金额，并用 `|` 合并状态：
+
+```bash
+uv run excelflow run \
+  --plan examples/tutorial/05_aggregation.xlsx \
+  --task lesson_05 \
+  --source examples/tutorial/source.xlsx \
+  --format csv \
+  --output examples/tutorial/output/05_customer_summary.csv
+```
+
+预期结果：
+
+```csv
+customer,order_count,total_amount,statuses
+张三,1,727.0,paid
+李四,2,579.0,pending|paid
+```
+
 ## 推荐学习方式
 
-依次打开四个计划文件，对比各工作表中新增的配置。每修改一次计划，先运行 `validate`，再运行 `preview` 检查执行计划，最后用 `run` 执行。
+依次打开五个计划文件，对比各工作表中新增的配置。每修改一次计划，先运行 `validate`，再运行 `preview` 检查执行计划，最后用 `run` 执行。
 
 `order_report/` 保留了一个独立的综合案例，可用于复制后改造成自己的任务。

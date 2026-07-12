@@ -23,11 +23,9 @@ class SafeExpressionEvaluatorTest(unittest.TestCase):
         self.assertEqual(self.evaluator.evaluate("round(i.price / 3, 2)", self.frame).iloc[0], 3.5)
         self.assertEqual(self.evaluator.evaluate("i.quantity % 2", self.frame).iloc[0], 0)
 
-    def test_rejects_missing_field_and_unsupported_syntax(self):
+    def test_rejects_missing_field(self):
         with self.assertRaisesRegex(ValueError, "不存在的字段"):
             self.evaluator.evaluate("i.missing + 1", self.frame)
-        with self.assertRaises(ValueError):
-            self.evaluator.evaluate("i.price > 1", self.frame)
 
     def test_signed_window_overrun_days(self):
         frame = pd.DataFrame({

@@ -50,9 +50,9 @@
 
 为什么不直接写 `i.quantity * i.unit_price`？因为 LEFT JOIN 找不到明细时，这两个值可能为空；空值参与乘法仍会得到空值。`coalesce(值, 默认值)` 会在值为空时改用默认值 0，使“没有明细”的金额明确为 0。
 
-## 支持的基础计算
+## 常用逐行函数
 
-表达式支持字段引用、数字、括号和：
+表达式支持字段引用、数字、括号、算术、比较与安全函数。常见函数包括：
 
 - `+` 加法
 - `-` 减法
@@ -63,6 +63,10 @@
 - `abs(value)` 绝对值
 - `round(value, digits)` 按 Pandas 规则保留指定位数；字段计算应显式填写 `digits`
 - `clip(value, lower, upper)` 把数值限制在范围内
+- `trim`、`upper`、`lower`、`concat`、`concat_ws` 清洗和拼接文本
+- `to_number`、`to_string`、`to_date` 转换类型
+- `dateformat`、`date_add`、`date_diff` 处理日期
+- `if_else(condition, true_value, false_value)` 生成条件列
 
 例如金额保留两位小数：
 
@@ -70,7 +74,9 @@
 round(coalesce(i.quantity, 0) * coalesce(i.unit_price, 0), 2)
 ```
 
-表达式只能引用源 Sheet 字段，不能引用另一个目标字段或衍生列。用于表达式的对象别名和列名请只使用英文字母、数字和下划线，并且不要以数字开头。表达式也不支持任意 Python 代码，这是为了避免计划文件执行危险操作。
+例如生成订单标签：`concat_ws("-", upper(trim(o.tenant)), to_string(o.order_id))`。
+
+表达式只能引用源 Sheet 字段，不能引用另一个目标字段或衍生列。`sum`、`count` 等跨行计算应填写“聚合规则”，不能写在转换表达式中。完整签名、空值行为和限制见[表达式参考](../reference/expressions.md)。
 
 ## 运行综合示例
 

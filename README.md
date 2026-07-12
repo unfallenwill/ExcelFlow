@@ -12,6 +12,7 @@ ExcelFlow 是一个由 Excel 计划驱动的数据抽取工具。业务用户在
 - 使用结构化条件筛选数据，而不需要编写代码。
 - 在同一个工作簿中关联多个 Sheet。
 - 通过安全表达式计算金额、差值和超窗天数等衍生列。
+- 按一个或多个字段分组，进行计数、求和、平均值等汇总。
 - 将同一份抽取计划保存、审核、复用和纳入版本管理。
 
 ## 安装
@@ -55,7 +56,8 @@ excelflow run --plan extraction_plan.xlsx --task order_report \
 - `INNER JOIN`、`LEFT JOIN`、多级关联和复合关联键。
 - AND/OR 条件组及 13 种过滤运算符。
 - `integer`、`decimal`、`string`、`datetime` 输出类型。
-- 四则运算、`coalesce`、`abs`、`round`、`clip` 安全表达式。
+- 字符串、数值、日期、类型转换和 `if_else` 等安全逐行函数。
+- `count`、`count_distinct`、`sum`、`avg`、`concat_agg` 等分组聚合。
 - CSV、JSONL、XLSX 输出。
 - 计划校验和 Pandas 执行计划预览。
 
@@ -74,7 +76,7 @@ excelflow run --plan extraction_plan.xlsx --task order_report \
 
 ## 示例
 
-[`examples/`](examples/README.md) 提供四个递进案例：单 Sheet、过滤、Sheet 关联、复合关联键与衍生列。示例计划和源数据已生成，可以直接运行。
+[`examples/`](examples/README.md) 提供五个递进案例：单 Sheet、过滤、关联、衍生列和分组聚合。示例计划和源数据可以直接运行。
 
 ## 安全边界
 
