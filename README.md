@@ -8,25 +8,23 @@
 uv run python main.py template extraction_plan.xlsx
 uv run python main.py validate extraction_plan.xlsx
 uv run python main.py preview extraction_plan.xlsx demo_orders
-uv run python main.py run extraction_plan.xlsx demo_orders
+uv run python main.py run extraction_plan.xlsx demo_orders ./data/source.xlsx
 ```
 
 生成的工作簿包含：
 
 - `抽取计划`：一行一个任务，定义全量/增量范围、过滤条件及输出。
-- `数据源`：连接信息；密码只保存环境变量名，不能保存明文。
 - `字段映射`：选择、重命名和转换字段；不填写时使用 `SELECT *`。
+- `过滤条件`：一行一个条件；同组内使用 AND，不同组之间使用 OR。
 - `填写说明`：字段语义和操作流程。
 
 增量区间采用左闭右开 `[开始值, 结束值)`，便于相邻批次无缝衔接。开始值和结束值可以写成 `${START_TIME}` 这样的环境变量占位符。
 
-支持 SQLite、Excel、JSON 三类数据源，以及 CSV、JSONL、XLSX 输出：
+仅支持 Excel 数据源，输出支持 CSV、JSONL、XLSX。源 Excel 文件在执行 `run` 时传入，`源对象`填写工作表名称，`表头行`从 1 开始计数。计划文件本身不保存数据源路径。
 
-- SQLite：`连接地址`填写数据库文件，`源对象`填写表或视图。
-- Excel：`连接地址`填写工作簿，`源对象`填写工作表；扩展参数可用 `{"header_row": 1}` 指定表头行。
-- JSON：文件内容可以直接是对象数组，也可以是包含对象数组的根对象；后一种情况由`源对象`指定数组键。扩展参数可用 `{"encoding": "utf-8"}` 指定编码。
+源工作表会加载到内存中执行筛选、字段转换和增量区间判断。
 
-Excel 和 JSON 会加载到内存临时表，然后复用 SQLite 的筛选、字段转换和增量区间语义。JSON 中的嵌套对象或数组会以 JSON 字符串写入输出。
+过滤运算符支持 `=`、`!=`、`>`、`>=`、`<`、`<=`、`IN`、`NOT IN`、`BETWEEN`、`LIKE`、`NOT LIKE`、`IS NULL` 和 `IS NOT NULL`。条件值使用参数化查询，不作为 SQL 片段执行。
 
 ## 安全边界
 

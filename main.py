@@ -18,13 +18,12 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 
 PLAN_HEADERS = [
-    "任务ID", "启用", "数据源ID", "源对象", "抽取模式", "增量字段", "开始值", "结束值",
-    "过滤条件", "输出格式", "输出路径", "批次大小", "负责人", "备注",
+    "任务ID", "启用", "源对象", "表头行", "抽取模式", "增量字段", "开始值", "结束值",
+    "输出格式", "输出路径", "批次大小", "负责人", "备注",
 ]
-SOURCE_HEADERS = ["数据源ID", "类型", "连接地址", "端口", "数据库", "Schema", "用户名", "密码环境变量", "扩展参数"]
 FIELD_HEADERS = ["任务ID", "源字段", "目标字段", "目标类型", "转换表达式", "字段顺序", "备注"]
+FILTER_HEADERS = ["任务ID", "条件组", "条件序号", "字段", "运算符", "值1", "值2", "备注"]
 
-IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*(\.[A-Za-z_][A-Za-z0-9_$]*)*$")
 SAFE_FIELD = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*$")
 
 
@@ -55,15 +54,8 @@ def create_template(path: Path) -> None:
     plan = wb.active
     plan.title = "抽取计划"
     plan.append(PLAN_HEADERS)
-    plan.append(["demo_orders", "否", "local_demo", "orders", "增量", "updated_at", "${START_TIME}", "${END_TIME}", "status = 'paid'", "csv", "./output/orders.csv", 10000, "数据组", "示例任务，启用前请修改"])
-    _style_sheet(plan, [18, 9, 16, 22, 12, 18, 20, 20, 28, 12, 30, 12, 14, 28])
-
-    source = wb.create_sheet("数据源")
-    source.append(SOURCE_HEADERS)
-    source.append(["local_demo", "sqlite", "./data/demo.db", "", "", "", "", "", "{}"])
-    source.append(["excel_demo", "excel", "./data/source.xlsx", "", "", "", "", "", '{"header_row": 1}'])
-    source.append(["json_demo", "json", "./data/source.json", "", "", "", "", "", '{"encoding": "utf-8"}'])
-    _style_sheet(source, [16, 12, 28, 10, 18, 14, 16, 20, 28])
+    plan.append(["demo_orders", "否", "orders", 1, "增量", "updated_at", "${START_TIME}", "${END_TIME}", "csv", "./output/orders.csv", 10000, "数据组", "示例任务，启用前请修改"])
+    _style_sheet(plan, [18, 9, 22, 10, 12, 18, 20, 20, 12, 30, 12, 14, 28])
 
     fields = wb.create_sheet("字段映射")
     fields.append(FIELD_HEADERS)
@@ -72,18 +64,28 @@ def create_template(path: Path) -> None:
     fields.append(["demo_orders", "updated_at", "updated_at", "datetime", "", 3, ""])
     _style_sheet(fields, [18, 20, 20, 16, 30, 12, 28])
 
+    filters = wb.create_sheet("过滤条件")
+    filters.append(FILTER_HEADERS)
+    filters.append(["demo_orders", 1, 1, "status", "=", "paid", "", "同组内为 AND"])
+    filters.append(["demo_orders", 1, 2, "amount", ">=", 100, "", ""])
+    filters.append(["demo_orders", 2, 1, "region", "IN", "华东,华南", "", "不同组之间为 OR"])
+    _style_sheet(filters, [18, 12, 12, 20, 14, 24, 24, 32])
+    operator = DataValidation(type="list", formula1='"=,!=,>,>=,<,<=,IN,NOT IN,BETWEEN,LIKE,NOT LIKE,IS NULL,IS NOT NULL"')
+    filters.add_data_validation(operator); operator.add("E2:E5000")
+
     guide = wb.create_sheet("填写说明")
     guide.append(["项目", "说明"])
     rows = [
-        ("使用流程", "填写数据源和任务 → validate 校验 → preview 预览 SQL → run 执行抽取"),
+        ("使用流程", "填写任务 → validate 校验 → preview 预览 SQL → run 时指定源 Excel 执行抽取"),
         ("启用", "是/否；只有“是”的任务允许执行"),
-        ("源对象", "SQLite: 表/视图名；Excel: 工作表名；JSON: 根对象中的数组键，根为数组时可填 data"),
+        ("源对象", "Excel 工作表名称，支持中文"),
         ("抽取模式", "全量或增量；增量任务必须填写增量字段"),
         ("开始值/结束值", "增量区间为 [开始值, 结束值)；支持 ${ENV_NAME} 环境变量占位符"),
         ("过滤条件", "可选的 SQL 条件，不要填写 WHERE；内容会原样拼接，执行前务必 preview"),
         ("字段映射", "不配置时抽取 *；转换表达式是源端 SQL 表达式，目标字段是输出列名"),
-        ("密码", "只填写环境变量名，例如 PD_PROD_PASSWORD，禁止把密码明文放进 Excel"),
-        ("当前连接器", "sqlite、excel、json"),
+        ("过滤条件", "一行一个条件；同一条件组内使用 AND，不同条件组之间使用 OR；没有记录表示不过滤"),
+        ("条件值", "IN/NOT IN 的值1使用英文逗号分隔；BETWEEN 同时填写值1和值2；IS NULL 类无需填写值"),
+        ("Excel数据源", "执行 run 命令时传入；表头行从 1 开始计数"),
         ("输出格式", "csv、jsonl 或 xlsx；相对路径以当前工作目录为基准"),
     ]
     for row in rows:
@@ -97,10 +99,7 @@ def create_template(path: Path) -> None:
         fmt = DataValidation(type="list", formula1='"csv,jsonl,xlsx"')
         ws.add_data_validation(enabled); enabled.add("B2:B1000")
         ws.add_data_validation(mode); mode.add("E2:E1000")
-        ws.add_data_validation(fmt); fmt.add("J2:J1000")
-    source_type = DataValidation(type="list", formula1='"sqlite,excel,json"')
-    source.add_data_validation(source_type); source_type.add("B2:B1000")
-
+        ws.add_data_validation(fmt); fmt.add("I2:I1000")
     path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(path)
 
@@ -117,24 +116,21 @@ def _records(ws) -> list[dict[str, Any]]:
 
 def read_spec(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     wb = load_workbook(path, data_only=True, read_only=True)
-    required = {"抽取计划", "数据源", "字段映射"}
+    required = {"抽取计划", "字段映射", "过滤条件"}
     missing = required - set(wb.sheetnames)
     if missing:
         raise ValueError(f"缺少工作表: {', '.join(sorted(missing))}")
-    return _records(wb["抽取计划"]), _records(wb["数据源"]), _records(wb["字段映射"])
+    return _records(wb["抽取计划"]), _records(wb["字段映射"]), _records(wb["过滤条件"])
 
 
 def validate(path: Path) -> ValidationResult:
     errors: list[str] = []
     warnings: list[str] = []
     try:
-        plans, sources, fields = read_spec(path)
+        plans, fields, filters = read_spec(path)
     except Exception as exc:
         return ValidationResult([str(exc)], [])
 
-    source_ids = [str(x.get("数据源ID") or "").strip() for x in sources]
-    if len(source_ids) != len(set(source_ids)):
-        errors.append("数据源ID存在重复")
     task_ids: list[str] = []
     for row_no, plan in enumerate(plans, 2):
         task_id = str(plan.get("任务ID") or "").strip()
@@ -142,16 +138,14 @@ def validate(path: Path) -> ValidationResult:
         prefix = f"抽取计划第{row_no}行"
         if not task_id:
             errors.append(f"{prefix}: 任务ID不能为空")
-        if str(plan.get("数据源ID") or "").strip() not in source_ids:
-            errors.append(f"{prefix}: 数据源ID不存在")
         obj = str(plan.get("源对象") or "").strip()
-        source_id = str(plan.get("数据源ID") or "").strip()
-        plan_source = next((x for x in sources if str(x.get("数据源ID") or "").strip() == source_id), None)
-        source_type = str((plan_source or {}).get("类型") or "").lower()
         if not obj:
             errors.append(f"{prefix}: 源对象不能为空")
-        elif source_type == "sqlite" and not IDENTIFIER.fullmatch(obj):
-            errors.append(f"{prefix}: SQLite 源对象只能是表/视图标识符，可带 schema")
+        try:
+            if int(plan.get("表头行") or 1) < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append(f"{prefix}: 表头行必须是正整数")
         mode = str(plan.get("抽取模式") or "").strip()
         if mode not in {"全量", "增量"}:
             errors.append(f"{prefix}: 抽取模式必须为全量或增量")
@@ -179,15 +173,25 @@ def validate(path: Path) -> ValidationResult:
             errors.append(f"字段映射第{row_no}行: 源字段必须是简单字段名，或填写转换表达式")
         if not SAFE_FIELD.fullmatch(target):
             errors.append(f"字段映射第{row_no}行: 目标字段格式不合法")
-    for source in sources:
-        source_type = str(source.get("类型") or "").lower()
-        if source_type not in {"sqlite", "excel", "json"}:
-            errors.append(f"数据源 {source.get('数据源ID')}: 类型必须为 sqlite、excel 或 json")
-        if not str(source.get("连接地址") or "").strip():
-            errors.append(f"数据源 {source.get('数据源ID')}: 连接地址不能为空")
-        secret = str(source.get("密码环境变量") or "").strip()
-        if secret and secret not in os.environ:
-            warnings.append(f"环境变量 {secret} 当前未设置")
+    operators = {"=", "!=", ">", ">=", "<", "<=", "IN", "NOT IN", "BETWEEN", "LIKE", "NOT LIKE", "IS NULL", "IS NOT NULL"}
+    for row_no, condition in enumerate(filters, 2):
+        prefix = f"过滤条件第{row_no}行"
+        if str(condition.get("任务ID") or "").strip() not in task_ids:
+            errors.append(f"{prefix}: 任务ID不存在")
+        if not SAFE_FIELD.fullmatch(str(condition.get("字段") or "").strip()):
+            errors.append(f"{prefix}: 字段必须是简单字段名")
+        operator = str(condition.get("运算符") or "").strip().upper()
+        if operator not in operators:
+            errors.append(f"{prefix}: 不支持的运算符 {operator or '(空)'}")
+        try:
+            if int(condition.get("条件组")) < 1 or int(condition.get("条件序号")) < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            errors.append(f"{prefix}: 条件组和条件序号必须是正整数")
+        if operator not in {"IS NULL", "IS NOT NULL"} and condition.get("值1") in (None, ""):
+            errors.append(f"{prefix}: {operator} 必须填写值1")
+        if operator == "BETWEEN" and condition.get("值2") in (None, ""):
+            errors.append(f"{prefix}: BETWEEN 必须填写值2")
     return ValidationResult(errors, warnings)
 
 
@@ -206,7 +210,38 @@ def _resolve(value: Any) -> Any:
     return value
 
 
-def build_query(plan: dict[str, Any], fields: list[dict[str, Any]], table_name: str | None = None) -> tuple[str, list[Any]]:
+def _build_filters(task_id: str, filters: list[dict[str, Any]]) -> tuple[str, list[Any]]:
+    selected = [x for x in filters if str(x.get("任务ID") or "").strip() == task_id]
+    groups: dict[int, list[dict[str, Any]]] = {}
+    for item in selected:
+        groups.setdefault(int(item["条件组"]), []).append(item)
+    group_sql: list[str] = []
+    params: list[Any] = []
+    for group_id in sorted(groups):
+        conditions: list[str] = []
+        for item in sorted(groups[group_id], key=lambda x: int(x["条件序号"])):
+            field = str(item["字段"]).strip()
+            operator = str(item["运算符"]).strip().upper()
+            if operator in {"IS NULL", "IS NOT NULL"}:
+                conditions.append(f'"{field}" {operator}')
+            elif operator in {"IN", "NOT IN"}:
+                values = [x.strip() for x in str(item["值1"]).split(",") if x.strip()]
+                if not values:
+                    raise ValueError(f"{operator} 至少需要一个值")
+                conditions.append(f'"{field}" {operator} ({", ".join("?" for _ in values)})')
+                params.extend(_resolve(x) for x in values)
+            elif operator == "BETWEEN":
+                conditions.append(f'"{field}" BETWEEN ? AND ?')
+                params.extend([_resolve(item["值1"]), _resolve(item["值2"])])
+            else:
+                conditions.append(f'"{field}" {operator} ?')
+                params.append(_resolve(item["值1"]))
+        if conditions:
+            group_sql.append("(" + " AND ".join(conditions) + ")")
+    return " OR ".join(group_sql), params
+
+
+def build_query(plan: dict[str, Any], fields: list[dict[str, Any]], filters: list[dict[str, Any]], table_name: str | None = None) -> tuple[str, list[Any]]:
     selected = [x for x in fields if str(x.get("任务ID") or "").strip() == str(plan["任务ID"]).strip()]
     selected.sort(key=lambda x: int(x.get("字段顺序") or 999999))
     if selected:
@@ -224,21 +259,21 @@ def build_query(plan: dict[str, Any], fields: list[dict[str, Any]], table_name: 
         field = plan["增量字段"]
         clauses.append(f"{field} >= ? AND {field} < ?")
         params.extend([_resolve(plan["开始值"]), _resolve(plan["结束值"])])
-    custom_filter = str(plan.get("过滤条件") or "").strip()
-    if custom_filter:
-        clauses.append(f"({custom_filter})")
+    filter_sql, filter_params = _build_filters(str(plan["任务ID"]).strip(), filters)
+    if filter_sql:
+        clauses.append(f"({filter_sql})")
+        params.extend(filter_params)
     if clauses:
         sql += " WHERE " + " AND ".join(clauses)
     return sql, params
 
 
 def _find_task(path: Path, task_id: str):
-    plans, sources, fields = read_spec(path)
+    plans, fields, filters = read_spec(path)
     plan = next((x for x in plans if str(x.get("任务ID")) == task_id), None)
     if not plan:
         raise ValueError(f"任务不存在: {task_id}")
-    source = next((x for x in sources if x.get("数据源ID") == plan.get("数据源ID")), None)
-    return plan, source, fields
+    return plan, fields, filters
 
 
 def _write_rows(output: Path, fmt: str, columns: list[str], rows: Iterable[tuple[Any, ...]]) -> int:
@@ -259,17 +294,6 @@ def _write_rows(output: Path, fmt: str, columns: list[str], rows: Iterable[tuple
     return count
 
 
-def _options(source: dict[str, Any]) -> dict[str, Any]:
-    raw = str(source.get("扩展参数") or "{}").strip()
-    try:
-        value = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"数据源 {source.get('数据源ID')} 的扩展参数不是合法 JSON: {exc}") from exc
-    if not isinstance(value, dict):
-        raise ValueError("扩展参数必须是 JSON 对象")
-    return value
-
-
 def _normalize_value(value: Any) -> Any:
     if value is None or isinstance(value, (str, int, float, bytes)):
         return value
@@ -280,36 +304,21 @@ def _normalize_value(value: Any) -> Any:
     return json.dumps(value, ensure_ascii=False, default=str)
 
 
-def _load_virtual_source(conn: sqlite3.Connection, source: dict[str, Any], object_name: str) -> None:
-    """Load an Excel sheet or JSON array into an in-memory SQLite table."""
-    source_type = str(source["类型"]).lower()
-    path = Path(str(source["连接地址"]))
-    options = _options(source)
+def _load_virtual_source(conn: sqlite3.Connection, source_path: Path, object_name: str, header_row: int) -> None:
+    """Load an Excel worksheet into an in-memory SQLite table."""
     records: list[dict[str, Any]] = []
-    if source_type == "excel":
-        workbook = load_workbook(path, data_only=True, read_only=True)
-        if object_name not in workbook.sheetnames:
-            raise ValueError(f"Excel 中不存在工作表: {object_name}")
-        ws = workbook[object_name]
-        header_row = int(options.get("header_row", 1))
-        rows = ws.iter_rows(min_row=header_row, values_only=True)
-        try:
-            headers = [str(x).strip() if x is not None else "" for x in next(rows)]
-        except StopIteration:
-            raise ValueError(f"Excel 工作表为空: {object_name}")
-        if not all(SAFE_FIELD.fullmatch(x) for x in headers) or len(headers) != len(set(headers)):
-            raise ValueError("Excel 表头必须是非空、唯一的简单字段名")
-        records = [dict(zip(headers, row)) for row in rows if any(x is not None for x in row)]
-    elif source_type == "json":
-        encoding = str(options.get("encoding", "utf-8"))
-        with path.open(encoding=encoding) as file:
-            payload = json.load(file)
-        data = payload if isinstance(payload, list) else payload.get(object_name) if isinstance(payload, dict) else None
-        if not isinstance(data, list):
-            raise ValueError(f"JSON 数据必须是数组，或根对象的 {object_name} 必须是数组")
-        if not all(isinstance(item, dict) for item in data):
-            raise ValueError("JSON 数组的每个元素必须是对象")
-        records = data
+    workbook = load_workbook(source_path, data_only=True, read_only=True)
+    if object_name not in workbook.sheetnames:
+        raise ValueError(f"Excel 中不存在工作表: {object_name}")
+    ws = workbook[object_name]
+    rows = ws.iter_rows(min_row=header_row, values_only=True)
+    try:
+        headers = [str(x).strip() if x is not None else "" for x in next(rows)]
+    except StopIteration:
+        raise ValueError(f"Excel 工作表为空: {object_name}")
+    if not all(SAFE_FIELD.fullmatch(x) for x in headers) or len(headers) != len(set(headers)):
+        raise ValueError("Excel 表头必须是非空、唯一的简单字段名")
+    records = [dict(zip(headers, row)) for row in rows if any(x is not None for x in row)]
     if not records:
         raise ValueError(f"源对象没有数据: {object_name}")
     columns: list[str] = []
@@ -328,21 +337,18 @@ def _load_virtual_source(conn: sqlite3.Connection, source: dict[str, Any], objec
     )
 
 
-def run_task(path: Path, task_id: str) -> tuple[int, Path]:
+def run_task(path: Path, task_id: str, source_path: Path) -> tuple[int, Path]:
     result = validate(path)
     if not result.ok:
         raise ValueError("Excel 校验失败:\n" + "\n".join(result.errors))
-    plan, source, fields = _find_task(path, task_id)
+    plan, fields, filters = _find_task(path, task_id)
     if str(plan.get("启用")) != "是":
         raise ValueError(f"任务 {task_id} 未启用")
-    source_type = str(source.get("类型") or "").lower()
-    sql, params = build_query(plan, fields, '"__source_data"' if source_type in {"excel", "json"} else None)
-    database = Path(str(source.get("连接地址") or "")) if source_type == "sqlite" else Path(":memory:")
+    sql, params = build_query(plan, fields, filters, '"__source_data"')
     batch_size = int(plan.get("批次大小") or 10000)
     output = Path(str(plan["输出路径"]))
-    with sqlite3.connect(database) as conn:
-        if source_type in {"excel", "json"}:
-            _load_virtual_source(conn, source, str(plan["源对象"]))
+    with sqlite3.connect(":memory:") as conn:
+        _load_virtual_source(conn, source_path, str(plan["源对象"]), int(plan.get("表头行") or 1))
         cursor = conn.execute(sql, params)
         columns = [item[0] for item in cursor.description]
         def rows():
@@ -362,7 +368,7 @@ def main() -> int:
     p_preview = sub.add_parser("preview", help="预览任务 SQL")
     p_preview.add_argument("path"); p_preview.add_argument("task_id")
     p_run = sub.add_parser("run", help="执行一个已启用任务")
-    p_run.add_argument("path"); p_run.add_argument("task_id")
+    p_run.add_argument("path"); p_run.add_argument("task_id"); p_run.add_argument("source_excel")
     args = parser.parse_args()
     try:
         if args.command == "template":
@@ -374,11 +380,11 @@ def main() -> int:
             if result.ok: print("校验通过")
             return 0 if result.ok else 1
         elif args.command == "preview":
-            plan, _, fields = _find_task(Path(args.path), args.task_id)
-            sql, params = build_query(plan, fields)
+            plan, fields, filters = _find_task(Path(args.path), args.task_id)
+            sql, params = build_query(plan, fields, filters)
             print(sql); print("参数:", params)
         elif args.command == "run":
-            count, output = run_task(Path(args.path), args.task_id)
+            count, output = run_task(Path(args.path), args.task_id, Path(args.source_excel))
             print(f"抽取完成: {count} 行 -> {output}")
     except Exception as exc:
         print(f"失败: {exc}", file=sys.stderr)
