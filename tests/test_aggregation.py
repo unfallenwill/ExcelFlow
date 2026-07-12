@@ -50,6 +50,61 @@ class AggregationTest(unittest.TestCase):
         self.assertEqual(result["total"].tolist(), [10.0, 5.0, 7.0])
         self.assertEqual(result["labels"].tolist(), ["x", "y", "z"])
 
+    def test_grouped_value_aggregations_are_asserted(self):
+        # The grouped path uses series_group.mean()/groupby.first()/last(), distinct from the
+        # whole-table APIs; these values must be locked so a wrong function or dropped NA-skip
+        # cannot pass silently. Group A (amount [10.0, None], label ["x", None]) skips NA.
+        rules = [
+            self.rule("o.amount", "avg", "average", "decimal", 1),
+            self.rule("o.amount", "min", "minimum", "decimal", 2),
+            self.rule("o.amount", "max", "maximum", "decimal", 3),
+            self.rule("o.label", "first", "first_label", "string", 4),
+            self.rule("o.label", "last", "last_label", "string", 5)]
+        result = self.engine._aggregate(self.frame, ExtractionSpec(groups=self.groups, aggregations=rules), "summary")
+        self.assertEqual(result["average"].tolist(), [10.0, 5.0, 7.0])
+        self.assertEqual(result["minimum"].tolist(), [10.0, 5.0, 7.0])
+        self.assertEqual(result["maximum"].tolist(), [10.0, 5.0, 7.0])
+        # last_label == "x" for group A (not None) locks the NA-skipping semantics of groupby.last().
+        self.assertEqual(result["first_label"].tolist(), ["x", "y", "z"])
+        self.assertEqual(result["last_label"].tolist(), ["x", "y", "z"])
+
+    def test_multi_key_grouping_combines_columns(self):
+        frame = pd.DataFrame({
+            "o.region": ["东", "东", "西", "西", "东"],
+            "o.dept": ["A", "B", "A", "A", "A"],
+            "o.amount": [10.0, 20.0, 30.0, 40.0, 50.0],
+        })
+        groups = [
+            {"任务ID": "summary", "源字段": "o.region", "目标字段": "region", "目标类型": "string", "分组顺序": 1},
+            {"任务ID": "summary", "源字段": "o.dept", "目标字段": "dept", "目标类型": "string", "分组顺序": 2}]
+        rules = [self.rule("", "count_all", "rows", "integer", 1), self.rule("o.amount", "sum", "total", "decimal", 2)]
+        result = self.engine._aggregate(frame, ExtractionSpec(groups=groups, aggregations=rules), "summary")
+        # Composite (region, dept) groups keep first-appearance order: (东,A), (东,B), (西,A).
+        self.assertEqual(result.columns.tolist(), ["region", "dept", "rows", "total"])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result["region"].tolist(), ["东", "东", "西"])
+        self.assertEqual(result["dept"].tolist(), ["A", "B", "A"])
+        self.assertEqual(result["rows"].tolist(), [2, 1, 2])
+        self.assertEqual(result["total"].tolist(), [60.0, 20.0, 70.0])
+
+    def test_whole_table_first_last_skips_na_and_returns_na_when_empty(self):
+        # Whole-table path (engine.py L135) is the structural twin of the grouped first/last just
+        # locked. Existing data puts None in the middle, so dropping .dropna() would still pass;
+        # None at the head/tail is the shape that truly distinguishes skip-na behavior.
+        framed = pd.DataFrame({"o.tag": [None, "y", None]})
+        result = self.engine._aggregate(framed, ExtractionSpec(aggregations=[
+            self.rule("o.tag", "first", "first", "string", 1),
+            self.rule("o.tag", "last", "last", "string", 2)]), "summary")
+        self.assertEqual(result["first"].tolist(), ["y"])
+        self.assertEqual(result["last"].tolist(), ["y"])
+        # An all-null column must hit the else pd.NA guard, not raise IndexError on iloc[0].
+        empty = pd.DataFrame({"o.tag": [None, None]})
+        empty_result = self.engine._aggregate(empty, ExtractionSpec(aggregations=[
+            self.rule("o.tag", "first", "first", "string", 1),
+            self.rule("o.tag", "last", "last", "string", 2)]), "summary")
+        self.assertTrue(pd.isna(empty_result["first"].iloc[0]))
+        self.assertTrue(pd.isna(empty_result["last"].iloc[0]))
+
     def test_whole_table_aggregation_and_all_null_sum(self):
         frame = pd.DataFrame({"o.amount": [None, None], "o.id": [1, 2]})
         rules = [self.rule("", "count_all", "rows", "integer", 1), self.rule("o.amount", "sum", "total", "decimal", 2)]

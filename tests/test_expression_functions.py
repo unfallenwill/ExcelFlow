@@ -58,12 +58,38 @@ class ExpressionFunctionTest(unittest.TestCase):
         self.assertEqual(self.evaluate("day(p.date)").iloc[:2].tolist(), [29.0, 2.0])
         self.assertEqual(self.evaluate('date_diff(date_add(p.date, 2, "day"), p.date, "day")').iloc[:2].tolist(), [2.0, 2.0])
 
+    def test_date_functions_sub_day_units(self):
+        # _date_units maps hour->"h" and minute->"m"; only "day" was exercised before. These lock
+        # the non-day timedelta unit and the unit-normalization division in date_diff.
+        self.assertEqual(self.evaluate('date_diff(date_add(p.date, 3, "hour"), p.date, "hour")').iloc[:2].tolist(), [3.0, 3.0])
+        self.assertEqual(self.evaluate('date_diff(date_add(p.date, 3, "hour"), p.date, "minute")').iloc[:2].tolist(), [180.0, 180.0])
+        # Plural alias "minutes" must resolve through _date_units too.
+        self.assertEqual(self.evaluate('date_add(p.date, 120, "minutes")').iloc[0], pd.Timestamp("2024-02-29 02:00:00"))
+
+    def test_to_date_as_standalone_function(self):
+        # to_date (L107) is bypassed by every other date function (they each call _dates directly),
+        # so deleting that line would leave all date tests green while breaking to_date(...) configs.
+        series = self.evaluate("to_date(p.date)")
+        self.assertEqual(series.iloc[0], pd.Timestamp("2024-02-29"))
+        self.assertTrue(pd.isna(series.iloc[2]))
+        self.assertEqual(self.evaluate('to_date("2024-02-29")'), pd.Timestamp("2024-02-29"))
+        with self.assertRaises(ValueError):
+            self.evaluate('to_date("not-a-date")')
+
     def test_comparisons_boolean_and_if_else(self):
         result = self.evaluate('if_else((p.amount >= 20) and not is_null(p.amount), "high", "low")')
         self.assertEqual(result.tolist(), ["low", "high", "low"])
         self.assertEqual(self.evaluate("if_else(True, 1, 0)"), 1)
         self.assertEqual(self.evaluate("if_else(None, 1, 0)"), 0)
         self.assertFalse(self.evaluate("1 > 2 or 3 < 2"))
+
+    def test_chained_comparison_ands_masks(self):
+        # Compare's for/else loop must AND-merge each segment's mask (not OR). p.amount is
+        # [10.2, 20.8, None]: 0 < x is True for both, x < 15 is True/False, so AND yields [True, False].
+        self.assertEqual(self.evaluate("0 < p.amount < 15").iloc[:2].tolist(), [True, False])
+        # Scalar chains confirm the for/else else-branch returns the reduced boolean.
+        self.assertEqual(self.evaluate("1 < 5 < 10"), True)
+        self.assertEqual(self.evaluate("1 < 5 < 3"), False)
 
     def test_bad_calls_syntax_and_conversion(self):
         for expression in ["unknown(p.code)", "upper()", 'date_add(p.date, 1, "month")', "p.code[0]", "p.code.str.upper()", "lambda: 1", "upper(value=p.code)",
