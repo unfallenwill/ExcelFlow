@@ -72,7 +72,7 @@ class PandasExtractionEngine(ExtractionEngine):
         first = self._coerce(series, item["值1"])
         if operator == "BETWEEN": return series.between(first, self._coerce(series, item["值2"]), inclusive="both")
         if operator in {"LIKE", "NOT LIKE"}:
-            pattern = re.escape(str(first)).replace(r"\%", ".*").replace(r"\_", ".")
+            pattern = "".join(".*" if char == "%" else "." if char == "_" else re.escape(char) for char in str(first))
             mask = series.astype("string").str.fullmatch(pattern, na=False)
             return ~mask if operator == "NOT LIKE" else mask
         return {"=": series.eq, "!=": series.ne, ">": series.gt, ">=": series.ge, "<": series.lt, "<=": series.le}[operator](first).fillna(False)
