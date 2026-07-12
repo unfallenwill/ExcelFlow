@@ -48,4 +48,5 @@ uv run python -m excelflow validate extraction_plan.xlsx
 
 ## 使用文档
 
+- [安装与运行教程](docs/installation.md)：安装 CLI、生成模板、校验、预览、执行、升级和常见问题。
 - [字段映射表达式指南](docs/expression-guide.md)：字段引用、四则运算、`coalesce`、`abs`、`round`、`clip` 和正负超窗计算。
