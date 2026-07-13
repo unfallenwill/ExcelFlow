@@ -22,16 +22,20 @@ class ExcelSpecRepository:
         ]
 
     def load(self, path: Path) -> ExtractionSpec:
+        # read_only 工作簿持有文件句柄，必须显式关闭，否则 Windows 上临时文件清理会失败。
         wb = load_workbook(path, data_only=True, read_only=True)
-        missing = self.required_sheets - set(wb.sheetnames)
-        if missing:
-            raise ValueError(f"缺少工作表: {', '.join(sorted(missing))}")
-        return ExtractionSpec(
-            plans=self._records(wb["抽取计划"]),
-            objects=self._records(wb["数据对象"]),
-            joins=self._records(wb["关联关系"]),
-            fields=self._records(wb["字段映射"]),
-            filters=self._records(wb["过滤条件"]),
-            groups=self._records(wb["分组字段"]) if "分组字段" in wb.sheetnames else [],
-            aggregations=self._records(wb["聚合规则"]) if "聚合规则" in wb.sheetnames else [],
-        )
+        try:
+            missing = self.required_sheets - set(wb.sheetnames)
+            if missing:
+                raise ValueError(f"缺少工作表: {', '.join(sorted(missing))}")
+            return ExtractionSpec(
+                plans=self._records(wb["抽取计划"]),
+                objects=self._records(wb["数据对象"]),
+                joins=self._records(wb["关联关系"]),
+                fields=self._records(wb["字段映射"]),
+                filters=self._records(wb["过滤条件"]),
+                groups=self._records(wb["分组字段"]) if "分组字段" in wb.sheetnames else [],
+                aggregations=self._records(wb["聚合规则"]) if "聚合规则" in wb.sheetnames else [],
+            )
+        finally:
+            wb.close()
