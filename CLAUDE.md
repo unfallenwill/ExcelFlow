@@ -48,6 +48,19 @@ uv run --group docs mkdocs build --strict
 uv run --group docs mkdocs serve
 ```
 
+Quality gate (ruff + Pyright + pre-commit, deps in the `dev` group):
+
+```bash
+uv sync --group dev
+uv run ruff check                  # lint (E,F,W,I,UP,B,SIM,C4,RUF)
+uv run ruff format --check         # formatting check (--check only; drop the flag to reflow)
+uv run pyright                     # type check, standard mode, scope = src/
+uv run pre-commit run --all-files  # the full local gate (hygiene + ruff + pyright)
+uv run pre-commit install          # one-time: wire the gate onto git commit
+```
+
+CI runs the same gate plus the unittest suite on every push/PR via `.github/workflows/quality.yml`.
+
 ## Architecture
 
 Call chain:
@@ -83,6 +96,8 @@ CLI (cli.py) → ExtractionService → ExcelSpecRepository   (load plan)
 **Commits** follow Conventional Commits prefixes (`feat:`, `test:`, `docs:`, `chore:`) — see `git log`.
 
 **Documentation updates track contracts, not commits.** `docs/reference/` is part of the extension chain — sync it in the same `feat:` that ships the capability. Touch `CLAUDE.md` only when a constraint-layer contract actually moves (workbook structure, filter/CLI semantics, execution-path exclusivity, test infrastructure), not on routine refactors, tests, or dependency bumps. If a stated anchor no longer matches the code, fix it on sight.
+
+**Quality gate is mandatory and runs everywhere.** Ruff (lint + format) and Pyright (`standard` mode, scope `src/`) are configured in `pyproject.toml` and wired through `.pre-commit-config.yaml` as local `uv run` hooks (so Pyright resolves `pandas`/`openpyxl` from the project env). `.github/workflows/quality.yml` runs the same gate plus the unittest suite on push and PR. Code must pass `ruff check`, `ruff format --check`, and `pyright` before commit. The pandas-heavy engine/AST interpreter is typed with explicit `cast(pd.Series, ...)` at column-selection and groupby boundaries and `Any` returns on inherently-dynamic helpers — these document pandas runtime invariants the stubs can't express; do not remove them or blanket-suppress the modules. RUF001/2/3 (fullwidth CJK punctuation) and RUF012 (read-only registry class attrs) are intentionally ignored.
 
 ## Testing notes
 

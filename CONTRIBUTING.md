@@ -16,9 +16,12 @@
 ## 开发流程
 
 ```bash
-uv sync
+uv sync --group dev                              # 安装运行依赖与质量门禁工具（ruff / pyright / pre-commit）
+uv run pre-commit install                        # 一次性：把质量门禁挂到 git commit
 uv run python -m unittest discover -s tests -v
 ```
+
+提交前会自动运行 ruff（lint + 格式化）、Pyright（`standard` 模式类型检查）与若干基础卫生检查；也可手动执行 `uv run pre-commit run --all-files`。CI 会在每次 push 与 PR 上运行同一套门禁加单测（见 `.github/workflows/quality.yml`）。
 
 修改应保持范围清晰，并包含相应测试和文档。模板字段、CLI 或配置语义变化属于用户可见变化，必须同步更新示例和参考资料。
 

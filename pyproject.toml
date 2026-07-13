@@ -14,6 +14,11 @@ dependencies = [
 docs = [
     "mkdocs-material>=9.6,<10",
 ]
+dev = [
+    "ruff>=0.8",
+    "pyright>=1.1.390",
+    "pre-commit>=4.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/unfallenwill/ExcelFlow"
@@ -30,3 +35,19 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/excelflow"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "RUF"]
+# RUF001/2/3: 中文用户文案中的全角标点（，；等）是有意为之，非"歧义字符"。
+# RUF012: 运算符/写入器等是只读注册表，非可变默认值的踩坑场景。
+ignore = ["RUF001", "RUF002", "RUF003", "RUF012"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
