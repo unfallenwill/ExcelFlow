@@ -8,7 +8,7 @@ ExcelFlow is a declarative Excel-data extraction tool. A business user fills in 
 
 ## Commands
 
-Install dependencies (uses `uv`, Python 3.12):
+Install dependencies (uses `uv`, Python ≥3.12):
 
 ```bash
 uv sync
@@ -68,15 +68,15 @@ CLI (cli.py) → ExtractionService → ExcelSpecRepository   (load plan)
 
 ## Critical conventions
 
-**The plan workbook is the configuration.** It has 5 required sheets (`抽取计划` / `数据对象` / `关联关系` / `字段映射` / `过滤条件`) plus 2 optional for aggregation (`分组字段` / `聚合规则`). The Chinese sheet names **and** column headers (`任务ID`, `条件组`, `条件序号`, `源字段`, `目标类型`, …) are exact-match dict keys read by `repository._records` and consumed throughout `validator` and `engine`. They are load-bearing identifiers, not display labels — do not translate, rename, or "fix" them. Header constants live in `schema.py` (`*_HEADERS`).
+**The plan workbook is the configuration.** Required sheets: `抽取计划` / `数据对象` / `关联关系` / `字段映射` / `过滤条件`. Optional, for aggregation: `分组字段` / `聚合规则`. The Chinese sheet names **and** column headers (`任务ID`, `条件组`, `条件序号`, `源字段`, `目标类型`, …) are exact-match dict keys read by `repository._records` and consumed throughout `validator` and `engine`. They are load-bearing identifiers, not display labels — do not translate, rename, or "fix" them. Header constants live in `schema.py` (`*_HEADERS`).
 
 **Field references use `别名.字段` (alias.field)** everywhere, e.g. `o.order_id`, `i.qty`. The regex `QUALIFIED_FIELD` in `schema.py` defines the shape; the alias prefix must match a declared `对象别名`.
 
-**Filter semantics:** within a `条件组` (group), conditions AND; across groups, they OR (`engine._filter`, lines that build `mask &=` intra-group and `total |=` inter-group). 13 operators are whitelisted in `SpecValidator.operators`. `IN` values are comma-separated.
+**Filter semantics:** within a `条件组` (group), conditions AND; across groups, they OR (intra-group `mask &=`, inter-group `total |=`, in `engine._filter`). The operator whitelist lives in `SpecValidator.operators`; `IN` values are comma-separated.
 
 **Aggregation and field-mapping are mutually exclusive** per task (validator enforces; `engine.execute` branches on whether aggregations exist). `count_all` takes no source field; every other aggregate function requires one.
 
-**CLI stays thin** — argument parsing and exit codes only (0 success, 1 on validation failure or any caught exception). Four subcommands: `template`, `validate`, `preview`, `run`; `allow_abbrev=False` so flag abbreviations are rejected. New logic goes in `ExtractionService` or a component, not `cli.py`.
+**CLI stays thin** — argument parsing and exit codes only (0 success, 1 on validation failure or any caught exception). Subcommands: `template`, `validate`, `preview`, `run`; `allow_abbrev=False`, so flag abbreviations are rejected. New logic goes in `ExtractionService` or a component, not `cli.py`.
 
 **Adding a new plan field or option** touches, in order: `schema.py` header constant → `template.py` (header + dropdown) → `repository.py` (if a new sheet) → `validator.py` (enum/range rules) → `engine.py` (execution) → `docs/reference/` → tests. Skipping the template/validator steps lets invalid values flow silently into the engine.
 
@@ -85,9 +85,9 @@ CLI (cli.py) → ExtractionService → ExcelSpecRepository   (load plan)
 ## Testing notes
 
 - Standard library `unittest` only — there is **no pytest** configured.
-- `uv run` is required so the `excelflow` console entrypoint is on PATH; one CLI test asserts `shutil.which("excelflow")` and fails without it.
+- `uv run` is required so the `excelflow` console entrypoint is on PATH; a CLI test asserts `shutil.which("excelflow")` and fails without it.
 - Tests build inputs inside `tempfile.TemporaryDirectory`; template-based fixtures are generated via `create_template`, not checked in.
-- Curated reference plan workbooks live under `examples/` (`tutorial/0[1-5]_*.xlsx` map to the docs tutorials, `order_report/` is a full sample) — known-good specs, separate from the generated test fixtures.
+- Curated reference plan workbooks live under `examples/` (one per docs tutorial, plus a full end-to-end sample) — known-good specs, separate from the generated test fixtures.
 - When locking behavior, assert actual values (read writers back, compare frames), not just "no exception" — the suite prioritizes catching silent-wrong-data regressions over raw line coverage.
 
 ## Docs
