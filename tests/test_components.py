@@ -16,28 +16,48 @@ from excelflow.service import ExtractionService
 class EngineConditionTest(unittest.TestCase):
     def setUp(self):
         self.engine = PandasExtractionEngine()
-        self.frame = pd.DataFrame({
-            "o.number": [1, 2, 3, None],
-            "o.text": ["apple", "banana", None, "apricot"],
-            "o.date": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03", None]),
-        })
+        self.frame = pd.DataFrame(
+            {
+                "o.number": [1, 2, 3, None],
+                "o.text": ["apple", "banana", None, "apricot"],
+                "o.date": pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03", None]),
+            }
+        )
 
     def condition(self, field, operator, value1=None, value2=None):
-        return self.engine._condition(self.frame, {"字段": field, "运算符": operator, "值1": value1, "值2": value2})
+        return self.engine._condition(
+            self.frame, {"字段": field, "运算符": operator, "值1": value1, "值2": value2}
+        )
 
     def test_filter_operator_families(self):
-        self.assertEqual(self.condition("o.number", "IN", "1,3").tolist(), [True, False, True, False])
-        self.assertEqual(self.condition("o.number", "NOT IN", "1,3").tolist(), [False, True, False, True])
-        self.assertEqual(self.condition("o.number", "BETWEEN", 2, 3).tolist(), [False, True, True, False])
-        self.assertEqual(self.condition("o.text", "LIKE", "ap%").tolist(), [True, False, False, True])
-        self.assertEqual(self.condition("o.text", "NOT LIKE", "ap%").tolist(), [False, True, True, False])
-        self.assertEqual(self.condition("o.number", "IS NULL").tolist(), [False, False, False, True])
-        self.assertEqual(self.condition("o.number", "IS NOT NULL").tolist(), [True, True, True, False])
+        self.assertEqual(
+            self.condition("o.number", "IN", "1,3").tolist(), [True, False, True, False]
+        )
+        self.assertEqual(
+            self.condition("o.number", "NOT IN", "1,3").tolist(), [False, True, False, True]
+        )
+        self.assertEqual(
+            self.condition("o.number", "BETWEEN", 2, 3).tolist(), [False, True, True, False]
+        )
+        self.assertEqual(
+            self.condition("o.text", "LIKE", "ap%").tolist(), [True, False, False, True]
+        )
+        self.assertEqual(
+            self.condition("o.text", "NOT LIKE", "ap%").tolist(), [False, True, True, False]
+        )
+        self.assertEqual(
+            self.condition("o.number", "IS NULL").tolist(), [False, False, False, True]
+        )
+        self.assertEqual(
+            self.condition("o.number", "IS NOT NULL").tolist(), [True, True, True, False]
+        )
 
     def test_comparisons_and_type_coercion(self):
         self.assertEqual(self.condition("o.number", ">=", "2").tolist(), [False, True, True, False])
         self.assertEqual(self.condition("o.number", "!=", 2).tolist(), [True, False, True, True])
-        self.assertEqual(self.condition("o.date", "<", "2026-01-03").tolist(), [True, True, False, False])
+        self.assertEqual(
+            self.condition("o.date", "<", "2026-01-03").tolist(), [True, True, False, False]
+        )
 
 
 class EngineFilterSemanticsTest(unittest.TestCase):
@@ -93,11 +113,13 @@ class OutputWriterRoundTripTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.frame = pd.DataFrame({
-            "id": [1, 2],
-            "name": ["张三", None],  # unicode + NA
-            "joined": pd.to_datetime(["2026-01-01", "2026-02-01"]),
-        })
+        self.frame = pd.DataFrame(
+            {
+                "id": [1, 2],
+                "name": ["张三", None],  # unicode + NA
+                "joined": pd.to_datetime(["2026-01-01", "2026-02-01"]),
+            }
+        )
 
     def test_csv_round_trip_preserves_unicode_and_columns(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -134,20 +156,32 @@ class EngineLoadAndSelectTest(unittest.TestCase):
         # 源工作簿里不存在引用的 Sheet → 必须给出可读错误，而非 pandas 的原始异常
         missing = ExtractionSpec(
             plans=[{"任务ID": "t", "启用": "是"}],
-            objects=[{"任务ID": "t", "Sheet名称": "缺失", "对象别名": "o", "表头行": 1, "是否主表": "是"}])
+            objects=[
+                {"任务ID": "t", "Sheet名称": "缺失", "对象别名": "o", "表头行": 1, "是否主表": "是"}
+            ],
+        )
         with tempfile.TemporaryDirectory() as tmp:
-            source = Path(tmp) / "source.xlsx"; Workbook().save(source)
+            source = Path(tmp) / "source.xlsx"
+            Workbook().save(source)
             with self.assertRaisesRegex(ValueError, "不存在工作表"):
                 engine._load(missing, "t", source)
 
         # 表头重复 → pandas 会静默重命名为 id.1 导致下游关联错列，必须提前拦截
         dup = ExtractionSpec(
             plans=[{"任务ID": "t", "启用": "是"}],
-            objects=[{"任务ID": "t", "Sheet名称": "数据", "对象别名": "o", "表头行": 1, "是否主表": "是"}])
+            objects=[
+                {"任务ID": "t", "Sheet名称": "数据", "对象别名": "o", "表头行": 1, "是否主表": "是"}
+            ],
+        )
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "source.xlsx"
-            wb = Workbook(); ws = wb.active; assert ws is not None
-            ws.title = "数据"; ws.append(["id", "id"]); ws.append([1, 2]); wb.save(source)
+            wb = Workbook()
+            ws = wb.active
+            assert ws is not None
+            ws.title = "数据"
+            ws.append(["id", "id"])
+            ws.append([1, 2])
+            wb.save(source)
             with self.assertRaisesRegex(ValueError, "表头不合法"):
                 engine._load(dup, "t", source)
 
@@ -156,14 +190,16 @@ class EngineLoadAndSelectTest(unittest.TestCase):
         frame = pd.DataFrame({"o.id": [1, 2], "o.name": ["a", "b"]})
         result = PandasExtractionEngine()._select(frame, ExtractionSpec(fields=[]), "t")
         self.assertEqual(result.columns.tolist(), ["o.id", "o.name"])
-        self.assertEqual(result.to_dict("records"),
-                         [{"o.id": 1, "o.name": "a"}, {"o.id": 2, "o.name": "b"}])
+        self.assertEqual(
+            result.to_dict("records"), [{"o.id": 1, "o.name": "a"}, {"o.id": 2, "o.name": "b"}]
+        )
         self.assertEqual(result.index.tolist(), [0, 1])
 
 
 class ExtractionServiceTest(unittest.TestCase):
     def test_validate_converts_repository_exception(self):
-        repository = Mock(); repository.load.side_effect = OSError("broken")
+        repository = Mock()
+        repository.load.side_effect = OSError("broken")
         result = ExtractionService(repository=repository).validate(Path("plan.xlsx"))
         self.assertFalse(result.ok)
         self.assertIn("broken", result.errors[0])

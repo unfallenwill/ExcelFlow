@@ -50,7 +50,10 @@ class ExtractionTest(unittest.TestCase):
             plan = self._plan(root, "jsonl")
             count, output = run_task(plan, "orders", source, "jsonl", root / "result.jsonl")
             self.assertEqual(count, 1)
-            self.assertEqual(json.loads(output.read_text()), {"order_id": 1, "customer_name": "张三", "amount": 20})
+            self.assertEqual(
+                json.loads(output.read_text()),
+                {"order_id": 1, "customer_name": "张三", "amount": 20},
+            )
 
     def test_four_sheet_multilevel_join(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -101,7 +104,9 @@ class ExtractionTest(unittest.TestCase):
             fields.append(["report", "c.name", "customer", "string", "", 2, ""])
             fields.append(["report", "r.region_name", "region", "string", "", 3, ""])
             fields.append(["report", "i.price", "price", "decimal", "", 4, ""])
-            fields.append(["report", "", "double_price", "decimal", "coalesce(i.price, 0) * 2", 5, ""])
+            fields.append(
+                ["report", "", "double_price", "decimal", "coalesce(i.price, 0) * 2", 5, ""]
+            )
             filters = plan_wb["过滤条件"]
             filters.delete_rows(2, filters.max_row)
             filters.append(["report", 1, 1, "r.region_name", "IN", "华东,华西", "", ""])
@@ -111,10 +116,25 @@ class ExtractionTest(unittest.TestCase):
             count, output = run_task(plan_path, "report", source, "jsonl", root / "result.jsonl")
             rows = [json.loads(line) for line in output.read_text().splitlines()]
             self.assertEqual(count, 2)
-            self.assertEqual(rows, [
-                {"order_id": 1, "customer": "张三", "region": "华东", "price": 50, "double_price": 100},
-                {"order_id": 2, "customer": "李四", "region": "华西", "price": None, "double_price": 0},
-            ])
+            self.assertEqual(
+                rows,
+                [
+                    {
+                        "order_id": 1,
+                        "customer": "张三",
+                        "region": "华东",
+                        "price": 50,
+                        "double_price": 100,
+                    },
+                    {
+                        "order_id": 2,
+                        "customer": "李四",
+                        "region": "华西",
+                        "price": None,
+                        "double_price": 0,
+                    },
+                ],
+            )
 
 
 if __name__ == "__main__":

@@ -9,13 +9,20 @@ from excelflow.expression import SafeExpressionEvaluator
 class ExpressionFunctionTest(unittest.TestCase):
     def setUp(self):
         self.evaluator = SafeExpressionEvaluator()
-        self.frame = pd.DataFrame({
-            "p.first": [" Alice ", "小", None], "p.last": ["Smith", "蓝", "Z"],
-            "p.code": ["ab-12", "CN-9", None], "p.number": ["10.5", "-2", "3"],
-            "p.date": ["2024-02-29", "2024-03-02", None], "p.amount": [10.2, 20.8, None],
-        }, index=[3, 5, 7])
+        self.frame = pd.DataFrame(
+            {
+                "p.first": [" Alice ", "小", None],
+                "p.last": ["Smith", "蓝", "Z"],
+                "p.code": ["ab-12", "CN-9", None],
+                "p.number": ["10.5", "-2", "3"],
+                "p.date": ["2024-02-29", "2024-03-02", None],
+                "p.amount": [10.2, 20.8, None],
+            },
+            index=[3, 5, 7],
+        )
 
-    def evaluate(self, expression): return self.evaluator.evaluate(expression, self.frame)
+    def evaluate(self, expression):
+        return self.evaluator.evaluate(expression, self.frame)
 
     def test_string_transformations_and_search(self):
         self.assertEqual(self.evaluate("upper(trim(p.first))").tolist(), ["ALICE", "小", pd.NA])
@@ -28,14 +35,22 @@ class ExpressionFunctionTest(unittest.TestCase):
         self.assertEqual(self.evaluate("length(p.last)").tolist(), [5, 1, 1])
 
     def test_concat_nulls_and_broadcast(self):
-        self.assertEqual(self.evaluate('concat(trim(p.first), " ", p.last)').tolist(), ["Alice Smith", "小 蓝", pd.NA])
-        self.assertEqual(self.evaluate('concat_ws("-", "ID", p.code)').tolist(), ["ID-ab-12", "ID-CN-9", pd.NA])
+        self.assertEqual(
+            self.evaluate('concat(trim(p.first), " ", p.last)').tolist(),
+            ["Alice Smith", "小 蓝", pd.NA],
+        )
+        self.assertEqual(
+            self.evaluate('concat_ws("-", "ID", p.code)').tolist(), ["ID-ab-12", "ID-CN-9", pd.NA]
+        )
         self.assertEqual(self.evaluate('concat_ws("/", "A", "B")'), "A/B")
         self.assertTrue(pd.isna(self.evaluate('concat(None, "x")')))
         self.assertTrue(pd.isna(self.evaluate("to_string(None)")))
 
     def test_type_and_numeric_functions(self):
-        assert_series_equal(self.evaluate("to_number(p.number)"), pd.Series([10.5, -2.0, 3.0], index=[3, 5, 7], name="p.number"))
+        assert_series_equal(
+            self.evaluate("to_number(p.number)"),
+            pd.Series([10.5, -2.0, 3.0], index=[3, 5, 7], name="p.number"),
+        )
         self.assertEqual(str(self.evaluate("to_string(p.amount)").dtype), "string")
         self.assertEqual(self.evaluate("ceil(p.amount)").iloc[:2].tolist(), [11.0, 21.0])
         self.assertEqual(self.evaluate("floor(p.amount)").iloc[:2].tolist(), [10.0, 20.0])
@@ -56,19 +71,35 @@ class ExpressionFunctionTest(unittest.TestCase):
         self.assertEqual(self.evaluate("year(p.date)").iloc[:2].tolist(), [2024.0, 2024.0])
         self.assertEqual(self.evaluate("month(p.date)").iloc[:2].tolist(), [2.0, 3.0])
         self.assertEqual(self.evaluate("day(p.date)").iloc[:2].tolist(), [29.0, 2.0])
-        self.assertEqual(self.evaluate('date_diff(date_add(p.date, 2, "day"), p.date, "day")').iloc[:2].tolist(), [2.0, 2.0])
+        self.assertEqual(
+            self.evaluate('date_diff(date_add(p.date, 2, "day"), p.date, "day")').iloc[:2].tolist(),
+            [2.0, 2.0],
+        )
 
     def test_date_functions_sub_day_units(self):
         # _date_units maps hour->"h" and minute->"m"; only "day" was exercised before. These lock
         # the non-day timedelta unit and the unit-normalization division in date_diff.
-        self.assertEqual(self.evaluate('date_diff(date_add(p.date, 3, "hour"), p.date, "hour")').iloc[:2].tolist(), [3.0, 3.0])
-        self.assertEqual(self.evaluate('date_diff(date_add(p.date, 3, "hour"), p.date, "minute")').iloc[:2].tolist(), [180.0, 180.0])
+        self.assertEqual(
+            self.evaluate('date_diff(date_add(p.date, 3, "hour"), p.date, "hour")')
+            .iloc[:2]
+            .tolist(),
+            [3.0, 3.0],
+        )
+        self.assertEqual(
+            self.evaluate('date_diff(date_add(p.date, 3, "hour"), p.date, "minute")')
+            .iloc[:2]
+            .tolist(),
+            [180.0, 180.0],
+        )
         # Plural alias "minutes" must resolve through _date_units too.
-        self.assertEqual(self.evaluate('date_add(p.date, 120, "minutes")').iloc[0], pd.Timestamp("2024-02-29 02:00:00"))
+        self.assertEqual(
+            self.evaluate('date_add(p.date, 120, "minutes")').iloc[0],
+            pd.Timestamp("2024-02-29 02:00:00"),
+        )
 
     def test_to_date_as_standalone_function(self):
-        # to_date (L107) is bypassed by every other date function (they each call _dates directly),
-        # so deleting that line would leave all date tests green while breaking to_date(...) configs.
+        # to_date (L107) is bypassed by other date functions (which call _dates directly);
+        # deleting it leaves all date tests green but breaks to_date(...) configs.
         series = self.evaluate("to_date(p.date)")
         self.assertEqual(series.iloc[0], pd.Timestamp("2024-02-29"))
         self.assertTrue(pd.isna(series.iloc[2]))
@@ -85,18 +116,35 @@ class ExpressionFunctionTest(unittest.TestCase):
 
     def test_chained_comparison_ands_masks(self):
         # Compare's for/else loop must AND-merge each segment's mask (not OR). p.amount is
-        # [10.2, 20.8, None]: 0 < x is True for both, x < 15 is True/False, so AND yields [True, False].
+        # [10.2, 20.8, None]: 0<x True for both; x<15 True/False -> AND yields [True, False].
         self.assertEqual(self.evaluate("0 < p.amount < 15").iloc[:2].tolist(), [True, False])
         # Scalar chains confirm the for/else else-branch returns the reduced boolean.
         self.assertEqual(self.evaluate("1 < 5 < 10"), True)
         self.assertEqual(self.evaluate("1 < 5 < 3"), False)
 
     def test_bad_calls_syntax_and_conversion(self):
-        for expression in ["unknown(p.code)", "upper()", 'date_add(p.date, 1, "month")', "p.code[0]", "p.code.str.upper()", "lambda: 1", "upper(value=p.code)",
-                           "[x for x in p.code]", '{"x": p.code}', "(1).__class__", "p.code if True else p.last", "(x := 1)", 'f"{p.code}"']:
-            with self.subTest(expression=expression), self.assertRaises(ValueError): self.evaluate(expression)
-        with self.assertRaisesRegex(ValueError, "语法错误"): self.evaluate("upper(")
-        with self.assertRaises(ValueError): self.evaluate('to_number("bad")')
+        for expression in [
+            "unknown(p.code)",
+            "upper()",
+            'date_add(p.date, 1, "month")',
+            "p.code[0]",
+            "p.code.str.upper()",
+            "lambda: 1",
+            "upper(value=p.code)",
+            "[x for x in p.code]",
+            '{"x": p.code}',
+            "(1).__class__",
+            "p.code if True else p.last",
+            "(x := 1)",
+            'f"{p.code}"',
+        ]:
+            with self.subTest(expression=expression), self.assertRaises(ValueError):
+                self.evaluate(expression)
+        with self.assertRaisesRegex(ValueError, "语法错误"):
+            self.evaluate("upper(")
+        with self.assertRaises(ValueError):
+            self.evaluate('to_number("bad")')
 
 
-if __name__ == "__main__": unittest.main()
+if __name__ == "__main__":
+    unittest.main()

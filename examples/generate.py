@@ -6,7 +6,6 @@ from openpyxl import Workbook, load_workbook
 
 from excelflow import create_template
 
-
 ROOT = Path(__file__).resolve().parent / "tutorial"
 
 
@@ -72,7 +71,9 @@ def add_customer_join(workbook, task_id: str) -> None:
     objects = workbook["数据对象"]
     objects.append([task_id, "订单", "o", 1, "是", "主表"])
     objects.append([task_id, "客户", "c", 1, "否", "客户信息"])
-    workbook["关联关系"].append([task_id, 1, "LEFT JOIN", "o.customer_id", "c", "c.customer_id", ""])
+    workbook["关联关系"].append(
+        [task_id, 1, "LEFT JOIN", "o.customer_id", "c", "c.customer_id", ""]
+    )
 
 
 def lesson_03() -> None:
@@ -99,8 +100,17 @@ def lesson_04() -> None:
         ["lesson_04", "i.product", "product", "string", "", 3, ""],
         ["lesson_04", "i.quantity", "quantity", "integer", "", 4, ""],
         ["lesson_04", "i.unit_price", "unit_price", "decimal", "", 5, ""],
-        ["lesson_04", "", "line_amount", "decimal", "coalesce(i.quantity, 0) * coalesce(i.unit_price, 0)", 6, "衍生列"],
-    ]: fields.append(row)
+        [
+            "lesson_04",
+            "",
+            "line_amount",
+            "decimal",
+            "coalesce(i.quantity, 0) * coalesce(i.unit_price, 0)",
+            6,
+            "衍生列",
+        ],
+    ]:
+        fields.append(row)
     filters = workbook["过滤条件"]
     filters.append(["lesson_04", 1, 1, "o.status", "=", "paid", "", ""])
     filters.append(["lesson_04", 1, 2, "o.amount", ">=", 100, "", ""])
@@ -110,16 +120,24 @@ def lesson_04() -> None:
 def lesson_05() -> None:
     path, workbook = empty_plan("05_aggregation.xlsx", "lesson_05", "按客户汇总订单")
     add_customer_join(workbook, "lesson_05")
-    workbook["分组字段"].append(["lesson_05", "c.customer_name", "customer", "string", 1, "按客户分组"])
+    workbook["分组字段"].append(
+        ["lesson_05", "c.customer_name", "customer", "string", 1, "按客户分组"]
+    )
     rules = workbook["聚合规则"]
     rules.append(["lesson_05", "", "count_all", "order_count", "integer", "", 1, "订单行数"])
     rules.append(["lesson_05", "o.amount", "sum", "total_amount", "decimal", "", 2, "订单总金额"])
-    rules.append(["lesson_05", "o.status", "concat_agg", "statuses", "string", "|", 3, "保持原顺序"])
+    rules.append(
+        ["lesson_05", "o.status", "concat_agg", "statuses", "string", "|", 3, "保持原顺序"]
+    )
     workbook.save(path)
 
 
 if __name__ == "__main__":
     ROOT.mkdir(parents=True, exist_ok=True)
     source_workbook()
-    lesson_01(); lesson_02(); lesson_03(); lesson_04(); lesson_05()
+    lesson_01()
+    lesson_02()
+    lesson_03()
+    lesson_04()
+    lesson_05()
     print(f"Tutorial generated in {ROOT}")

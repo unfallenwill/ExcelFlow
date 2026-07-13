@@ -20,7 +20,9 @@ class SafeExpressionEvaluatorTest(unittest.TestCase):
             self.evaluator.evaluate("__import__('os').system('echo unsafe')", self.frame)
 
     def test_supported_arithmetic_and_functions(self):
-        self.assertEqual(self.evaluator.evaluate("-i.price + abs(i.quantity)", self.frame).iloc[0], -8.5)
+        self.assertEqual(
+            self.evaluator.evaluate("-i.price + abs(i.quantity)", self.frame).iloc[0], -8.5
+        )
         self.assertEqual(self.evaluator.evaluate("round(i.price / 3, 2)", self.frame).iloc[0], 3.5)
         self.assertEqual(self.evaluator.evaluate("i.quantity % 2", self.frame).iloc[0], 0)
 
@@ -29,12 +31,14 @@ class SafeExpressionEvaluatorTest(unittest.TestCase):
             self.evaluator.evaluate("i.missing + 1", self.frame)
 
     def test_signed_window_overrun_days(self):
-        frame = pd.DataFrame({
-            "v.actual_day": [22, 35, 30],
-            "v.plan_day": [28, 28, 28],
-            "v.window_days": [3, 3, 3],
-        })
-        expression = "v.actual_day - clip(v.actual_day, v.plan_day - v.window_days, v.plan_day + v.window_days)"
+        frame = pd.DataFrame(
+            {
+                "v.actual_day": [22, 35, 30],
+                "v.plan_day": [28, 28, 28],
+                "v.window_days": [3, 3, 3],
+            }
+        )
+        expression = "v.actual_day - clip(v.actual_day, v.plan_day - v.window_days, v.plan_day + v.window_days)"  # noqa: E501
         result = self.evaluator.evaluate(expression, frame)
         self.assertEqual(result.tolist(), [-3, 4, 0])
 

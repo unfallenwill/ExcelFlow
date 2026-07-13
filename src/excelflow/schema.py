@@ -10,7 +10,16 @@ JOIN_HEADERS = ["任务ID", "关联顺序", "关联类型", "左侧字段", "右
 FIELD_HEADERS = ["任务ID", "源字段", "目标字段", "目标类型", "转换表达式", "字段顺序", "备注"]
 FILTER_HEADERS = ["任务ID", "条件组", "条件序号", "字段", "运算符", "值1", "值2", "备注"]
 GROUP_HEADERS = ["任务ID", "源字段", "目标字段", "目标类型", "分组顺序", "备注"]
-AGGREGATION_HEADERS = ["任务ID", "源字段", "聚合函数", "目标字段", "目标类型", "分隔符", "聚合顺序", "备注"]
+AGGREGATION_HEADERS = [
+    "任务ID",
+    "源字段",
+    "聚合函数",
+    "目标字段",
+    "目标类型",
+    "分隔符",
+    "聚合顺序",
+    "备注",
+]
 SAFE_FIELD = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*$")
 QUALIFIED_FIELD = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*$")
 

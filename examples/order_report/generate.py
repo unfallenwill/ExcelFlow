@@ -6,7 +6,6 @@ from openpyxl import Workbook, load_workbook
 
 from excelflow import create_template
 
-
 ROOT = Path(__file__).resolve().parent
 
 
@@ -61,7 +60,17 @@ def create_plan() -> None:
     fields.append(["order_report", "i.product", "product", "string", "", 3, ""])
     fields.append(["order_report", "i.quantity", "quantity", "integer", "", 4, ""])
     fields.append(["order_report", "i.unit_price", "unit_price", "decimal", "", 5, ""])
-    fields.append(["order_report", "", "line_amount", "decimal", "coalesce(i.quantity, 0) * coalesce(i.unit_price, 0)", 6, "衍生列"])
+    fields.append(
+        [
+            "order_report",
+            "",
+            "line_amount",
+            "decimal",
+            "coalesce(i.quantity, 0) * coalesce(i.unit_price, 0)",
+            6,
+            "衍生列",
+        ]
+    )
 
     filters = workbook["过滤条件"]
     filters.delete_rows(2, filters.max_row)
