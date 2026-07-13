@@ -1,6 +1,10 @@
+import re
 from typing import Any
 
 from .schema import QUALIFIED_FIELD, SAFE_FIELD, ExtractionSpec, ValidationResult
+
+# 任务ID 在多任务模式下被拼成输出文件名，禁止路径分隔符、Windows 非法文件名字符与控制字符。
+_FORBIDDEN_TASK_ID_CHAR = re.compile(r"[\\/:*?\"<>|\x00-\x1f]")
 
 
 class SpecValidator:
@@ -40,6 +44,10 @@ class SpecValidator:
             errors.append("任务ID不能为空")
         if len(task_ids) != len(set(task_ids)):
             errors.append("任务ID存在重复")
+        for task_id in task_ids:
+            # 禁止路径分隔符、Windows 非法文件名字符、控制字符与点段，避免目录穿越和运行时 OS 错误。
+            if task_id in {".", ".."} or _FORBIDDEN_TASK_ID_CHAR.search(task_id):
+                errors.append(f"任务ID不能包含路径分隔符或文件名非法字符: {task_id}")
         aliases: dict[str, set[str]] = {task: set() for task in task_ids}
 
         for plan in spec.plans:

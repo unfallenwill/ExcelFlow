@@ -278,6 +278,21 @@ class AggregationTest(unittest.TestCase):
             )
         )
 
+    def test_validator_rejects_task_id_with_unsafe_characters(self):
+        # 路径分隔符 + 点段 + Windows 非法文件名字符都应被拒
+        for bad in ("a/b", "a\\b", ".", "..", "a:b", "a*b", "a?b", "a|b", "a<b", 'a"b'):
+            spec = ExtractionSpec(plans=[{"任务ID": bad, "启用": "是"}])
+            errors = SpecValidator().validate(spec).errors
+            self.assertTrue(
+                any("路径分隔符" in error for error in errors),
+                f"任务ID {bad!r} 应被拒绝，实际 errors={errors}",
+            )
+        # 正常任务ID（含中文、下划线、连字符）不应触发此项
+        ok = ExtractionSpec(plans=[{"任务ID": "订单_汇总-1", "启用": "是"}])
+        self.assertFalse(
+            any("路径分隔符" in error for error in SpecValidator().validate(ok).errors)
+        )
+
     def test_scalar_expression_is_broadcast_and_converted(self):
         frame = pd.DataFrame({"o.id": [1, 2]}, index=[4, 8])
         fields = [
