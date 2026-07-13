@@ -13,7 +13,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pandas as pd
+from openpyxl import Workbook, load_workbook
 
+from excelflow import create_template
 from excelflow.cli import main, package_version
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -180,6 +182,163 @@ class CliTest(unittest.TestCase):
                     records = pd.read_excel(output).to_dict("records")
                 self.assertEqual(records, EXPECTED_RECORDS)
 
+    def test_run_defaults_format_and_output_when_omitted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            # 省略 --format 与 --output：默认 xlsx，文件名 <task>.<格式>
+            result = self.run_cli(
+                "run",
+                "-p",
+                str(PLAN),
+                "-t",
+                "lesson_01",
+                "-s",
+                str(SOURCE),
+                cwd=root,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, "")
+            default_output = root / "lesson_01.xlsx"
+            self.assertTrue(default_output.exists())
+            self.assertEqual(pd.read_excel(default_output).to_dict("records"), EXPECTED_RECORDS)
+            self.assertIn("抽取完成: 3 行", result.stdout)
+            # 仅省略 --output：文件名后缀跟随 --format
+            result_csv = self.run_cli(
+                "run",
+                "-p",
+                str(PLAN),
+                "-t",
+                "lesson_01",
+                "-s",
+                str(SOURCE),
+                "-f",
+                "csv",
+                cwd=root,
+            )
+            self.assertEqual(result_csv.returncode, 0, result_csv.stderr)
+            self.assertTrue((root / "lesson_01.csv").exists())
+
+    @staticmethod
+    def _make_multi_task_plan(root: Path) -> Path:
+        source = root / "source.xlsx"
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "订单"
+        ws.append(["id", "amount"])
+        ws.append([1, 10])
+        ws.append([2, 20])
+        wb.save(source)
+        plan_path = root / "plan.xlsx"
+        create_template(plan_path)
+        plan_wb = load_workbook(plan_path)
+        plan = plan_wb["抽取计划"]
+        plan.delete_rows(2, plan.max_row)
+        plan.append(["t1", "是", ""])
+        plan.append(["t2", "是", ""])
+        plan.append(["t3", "否", "未启用，应被跳过"])
+        objects = plan_wb["数据对象"]
+        objects.delete_rows(2, objects.max_row)
+        # 三个任务都配主表，保持结构合法（validator 不区分启用与否）
+        for task_id in ("t1", "t2", "t3"):
+            objects.append([task_id, "订单", "o", 1, "是", ""])
+        plan_wb["关联关系"].delete_rows(2, plan_wb["关联关系"].max_row)  # 清默认 demo 行
+        fields = plan_wb["字段映射"]
+        fields.delete_rows(2, fields.max_row)
+        fields.append(["t1", "o.id", "order_id", "integer", "", 1, ""])
+        fields.append(["t2", "o.id", "order_id", "integer", "", 1, ""])
+        fields.append(["t2", "o.amount", "amount", "decimal", "", 2, ""])
+        fields.append(["t3", "o.id", "order_id", "integer", "", 1, ""])
+        plan_wb["过滤条件"].delete_rows(2, plan_wb["过滤条件"].max_row)  # 清默认 demo 行
+        plan_wb.save(plan_path)
+        return plan_path
+
+    def test_run_all_executes_every_enabled_task(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_path = self._make_multi_task_plan(root)
+            out_dir = root / "out"
+            result = self.run_cli(
+                "run",
+                "-p",
+                str(plan_path),
+                "-s",
+                str(root / "source.xlsx"),
+                "--format",
+                "csv",
+                "--output",
+                str(out_dir),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((out_dir / "t1.csv").exists())
+            self.assertTrue((out_dir / "t2.csv").exists())
+            self.assertFalse((out_dir / "t3.csv").exists())
+            self.assertIn("[t1]", result.stdout)
+            self.assertIn("[t2]", result.stdout)
+            self.assertNotIn("[t3]", result.stdout)
+
+    def test_run_all_rejects_output_pointing_at_a_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_path = self._make_multi_task_plan(root)
+            bad_output = root / "not_a_dir.csv"
+            bad_output.write_text("x")
+            result = self.run_cli(
+                "run",
+                "-p",
+                str(plan_path),
+                "-s",
+                str(root / "source.xlsx"),
+                "-o",
+                str(bad_output),
+            )
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("必须是目录", result.stderr)
+
+    def test_run_all_wraps_failure_with_task_id_and_keeps_prior_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.xlsx"
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "订单"
+            ws.append(["id"])
+            ws.append([1])
+            wb.save(source)
+            plan_path = root / "plan.xlsx"
+            create_template(plan_path)
+            plan_wb = load_workbook(plan_path)
+            plan_wb["抽取计划"].delete_rows(2, plan_wb["抽取计划"].max_row)
+            plan_wb["抽取计划"].append(["t1", "是", ""])
+            plan_wb["抽取计划"].append(["t2", "是", ""])
+            objects = plan_wb["数据对象"]
+            objects.delete_rows(2, objects.max_row)
+            objects.append(["t1", "订单", "o", 1, "是", ""])
+            objects.append(["t2", "订单X", "o", 1, "是", ""])  # 订单X 不在 source
+            plan_wb["关联关系"].delete_rows(2, plan_wb["关联关系"].max_row)
+            fields = plan_wb["字段映射"]
+            fields.delete_rows(2, fields.max_row)
+            fields.append(["t1", "o.id", "order_id", "integer", "", 1, ""])
+            fields.append(["t2", "o.id", "order_id", "integer", "", 1, ""])
+            plan_wb["过滤条件"].delete_rows(2, plan_wb["过滤条件"].max_row)
+            plan_wb.save(plan_path)
+            out_dir = root / "out"
+            result = self.run_cli(
+                "run",
+                "-p",
+                str(plan_path),
+                "-s",
+                str(source),
+                "--format",
+                "csv",
+                "--output",
+                str(out_dir),
+            )
+            # 多任务失败时异常带 task_id 前缀；fail-fast，但 t1 已写出的文件保留
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("任务 t2 失败", result.stderr)
+            self.assertTrue((out_dir / "t1.csv").exists())
+            self.assertFalse((out_dir / "t2.csv").exists())
+
     def test_old_positional_syntax_is_rejected_for_every_command(self):
         commands = (
             ("template", "plan.xlsx"),
@@ -199,10 +358,7 @@ class CliTest(unittest.TestCase):
         ]
         run_pairs = [
             ("--plan", str(PLAN)),
-            ("--task", "lesson_01"),
             ("--source", str(SOURCE)),
-            ("--format", "csv"),
-            ("--output", "/tmp/result.csv"),
         ]
         for missing_index in range(len(run_pairs)):
             args = [

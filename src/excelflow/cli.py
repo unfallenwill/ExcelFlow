@@ -31,12 +31,21 @@ def main() -> int:
     preview.add_argument("-t", "--task", required=True, help="任务ID")
     run = sub.add_parser("run", help="执行数据抽取", allow_abbrev=False)
     run.add_argument("-p", "--plan", required=True, help="抽取计划 Excel")
-    run.add_argument("-t", "--task", required=True, help="任务ID")
+    run.add_argument("-t", "--task", default=None, help="任务ID（省略则执行所有已启用任务）")
     run.add_argument("-s", "--source", required=True, help="源数据 Excel")
     run.add_argument(
-        "-f", "--format", required=True, choices=["csv", "jsonl", "xlsx"], help="输出格式"
+        "-f",
+        "--format",
+        default="xlsx",
+        choices=["csv", "jsonl", "xlsx"],
+        help="输出格式（默认 xlsx）",
     )
-    run.add_argument("-o", "--output", required=True, help="输出路径")
+    run.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="输出路径：单任务为文件路径（默认 <任务ID>.<格式>），多任务为目录（默认当前目录）",
+    )
     args, service = parser.parse_args(), ExtractionService()
     try:
         if args.command == "template":
@@ -52,10 +61,23 @@ def main() -> int:
         elif args.command == "preview":
             print(service.preview(Path(args.plan), args.task))
         else:
-            count, output = service.run(
-                Path(args.plan), args.task, Path(args.source), args.format, Path(args.output)
-            )
-            print(f"抽取完成: {count} 行 -> {output}")
+            plan_path, source_path, output_format = Path(args.plan), Path(args.source), args.format
+            if args.task:
+                output_path = (
+                    Path(args.output) if args.output else Path(f"{args.task}.{output_format}")
+                )
+                count, output = service.run(
+                    plan_path, args.task, source_path, output_format, output_path
+                )
+                print(f"抽取完成: {count} 行 -> {output}")
+            else:
+                output_dir = Path(args.output) if args.output else Path(".")
+                results = service.run_all(plan_path, source_path, output_format, output_dir)
+                if not results:
+                    print("没有已启用的任务", file=sys.stderr)
+                    return 1
+                for task_id, count, output in results:
+                    print(f"抽取完成 [{task_id}]: {count} 行 -> {output}")
     except Exception as exc:
         print(f"失败: {exc}", file=sys.stderr)
         return 1
