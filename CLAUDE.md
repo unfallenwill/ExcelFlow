@@ -82,6 +82,8 @@ CLI (cli.py) → ExtractionService → ExcelSpecRepository   (load plan)
 
 **Commits** follow Conventional Commits prefixes (`feat:`, `test:`, `docs:`, `chore:`) — see `git log`.
 
+**Documentation updates track contracts, not commits.** `docs/reference/` is part of the extension chain — sync it in the same `feat:` that ships the capability. Touch `CLAUDE.md` only when a constraint-layer contract actually moves (workbook structure, filter/CLI semantics, execution-path exclusivity, test infrastructure), not on routine refactors, tests, or dependency bumps. If a stated anchor no longer matches the code, fix it on sight.
+
 ## Testing notes
 
 - Standard library `unittest` only — there is **no pytest** configured.
